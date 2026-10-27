@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# 安装三仓的 pre-commit hook:主仓管专有名词扫描与红线双向锁,知识库与 records 两个
-# 独立 vault 仓各管自己的 lint。vault 仓缺失时静默跳过(新机可能尚未 clone)。
-# 知识库与 records 可在 ops-agent 之外(config/paths.local.yaml 的 knowledge_root/records_root),
+# 安装各仓的 pre-commit hook:主仓管专有名词扫描与红线双向锁,知识库与 records 两个
+# 独立 vault 仓各管自己的 lint,环境包仓(独立 git 仓时)跑包内测试。仓缺失时静默跳过(新机可能尚未 clone)。
+# 知识库、records 与环境包可在 ops-agent 之外(config/paths.local.yaml 的 knowledge_root/records_root/env_pack),
 # 其 hook 安装时写死主仓绝对路径;任一仓搬家后需重跑本脚本。
 set -euo pipefail
 
@@ -82,3 +82,22 @@ RECORDS=\"$RECORDS\"
 $VAULT_COMMON"'
 echo "[pre-commit] 跑 record lint..."
 "$PY" -m lib.record lint "$RECORDS/troubleshoot"'
+
+# ── 环境包仓:用主仓 .venv 跑包内 tests(含「核心干净」扫描);本仓自带的示例包不装 ──
+ENV_PACK="$(cd "$REPO" && "$PY_MAIN" -c 'from pathlib import Path; from lib.envpack import resolve_env_pack_dir; print(resolve_env_pack_dir(Path(".").resolve()).resolve())')"
+
+case "$ENV_PACK" in
+  "$REPO"/*) echo "跳过 $ENV_PACK(本仓内的环境包)" ;;
+  *) install_hook "$ENV_PACK" "#!/usr/bin/env bash
+set -e
+MAIN=\"$REPO\""'
+PY="$MAIN/.venv/bin/python"
+[ -x "$PY" ] || PY="$MAIN/.venv/Scripts/python.exe"
+if [ ! -x "$PY" ]; then
+  echo "[pre-commit] 找不到主仓 .venv,跳过环境包测试" >&2
+  exit 0
+fi
+cd "$(git rev-parse --show-toplevel)"
+echo "[pre-commit] 跑环境包测试..."
+env -u OPS_AGENT_KNOWLEDGE_ROOT -u OPS_AGENT_DATA_ROOT OPS_AGENT_CORE="$MAIN" "$PY" -m pytest -q -p no:cacheprovider tests' ;;
+esac

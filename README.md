@@ -93,7 +93,7 @@ pre-commit 只扫暂存内容,CI 全量扫。
 
 ```bash
 cp config/paths.example.yaml config/paths.local.yaml   # knowledge_root / records_root / env_pack
-bash scripts/install_hooks.sh                          # 装好本仓与知识库/记录仓的 pre-commit
+bash scripts/install_hooks.sh                          # 装好本仓、知识库/记录仓与环境包仓的 pre-commit
 .venv/bin/python scripts/build_wiki.py                 # 生成 routing、wiki、拓扑与检索快照
 ```
 
@@ -146,7 +146,7 @@ bash scripts/install_hooks.sh                          # 装好本仓与知识�
 - `.venv/bin/python scripts/build_package.py [--target windows|linux] [--version <预发布号>]` — 构建发布产物
 - `.venv/bin/python scripts/release.py --repo <发布仓> [--version <预发布号> --notes ...] [--dry-run]` — 签名发版
 - `cd desktop && go test ./... && GOOS=windows go vet ./...` — 外壳单测;`packaging/windows/e2e/remote.sh` 实机验收
-- `bash scripts/install_hooks.sh` — 安装本仓(专有名词扫描 + 红线锁)与知识库/记录仓的 pre-commit
+- `bash scripts/install_hooks.sh` — 安装本仓(专有名词扫描 + 红线锁)、知识库/记录仓与环境包仓(独立 git 仓时跑包内测试)的 pre-commit
 - `.venv/bin/python tests/smoke_ssh.py --node <node>` — SSH 冒烟(手动)
 
 ## 功能说明
