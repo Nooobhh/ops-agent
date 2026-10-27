@@ -1,0 +1,34 @@
+# 缓存集群(虚构):一主两从 + 哨兵。
+platform: cache
+cluster_name: cache-cluster
+collected_at: '2026-01-01T00:00:00+00:00'
+nodes:
+  cache01:
+    host: 203.0.113.31
+    components:
+    - REDIS
+    - REDIS_SENTINEL
+    node_type: vm
+    role: Redis + 哨兵
+    status: observed-active
+  cache02:
+    host: 203.0.113.32
+    components:
+    - REDIS
+    - REDIS_SENTINEL
+    node_type: vm
+    role: Redis + 哨兵
+    status: observed-active
+  cache03:
+    host: 203.0.113.33
+    components:
+    - REDIS
+    - REDIS_SENTINEL
+    node_type: vm
+    role: Redis + 哨兵
+    status: observed-active
+endpoints:
+  redis-vip-6379:
+    host: 203.0.113.30
+    port: 6379
+    source: manual

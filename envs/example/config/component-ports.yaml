@@ -1,0 +1,184 @@
+# 组件端口登记:管理面配置项 → [组件, 用途]。采集器按此从当前生效配置取端口值写进拓扑快照。
+# 结构:管理面服务名 → 配置类型 → 配置键: [组件, 用途];组件写 auto 表示该服务唯一的非客户端组件。
+HDFS:
+  hdfs-site:
+    dfs.namenode.rpc-address:
+    - NAMENODE
+    - rpc
+    dfs.namenode.http-address:
+    - NAMENODE
+    - http
+    dfs.namenode.https-address:
+    - NAMENODE
+    - https
+    dfs.datanode.address:
+    - DATANODE
+    - data
+    dfs.datanode.http.address:
+    - DATANODE
+    - http
+    dfs.datanode.ipc.address:
+    - DATANODE
+    - ipc
+    dfs.journalnode.rpc-address:
+    - JOURNALNODE
+    - rpc
+    dfs.journalnode.http-address:
+    - JOURNALNODE
+    - http
+    dfs.ha.zkfc.port:
+    - ZKFC
+    - rpc
+YARN:
+  yarn-site:
+    yarn.resourcemanager.address:
+    - RESOURCEMANAGER
+    - rpc
+    yarn.resourcemanager.scheduler.address:
+    - RESOURCEMANAGER
+    - scheduler
+    yarn.resourcemanager.resource-tracker.address:
+    - RESOURCEMANAGER
+    - resource-tracker
+    yarn.resourcemanager.admin.address:
+    - RESOURCEMANAGER
+    - admin
+    yarn.resourcemanager.webapp.address:
+    - RESOURCEMANAGER
+    - http
+    yarn.nodemanager.address:
+    - NODEMANAGER
+    - rpc
+    yarn.nodemanager.webapp.address:
+    - NODEMANAGER
+    - http
+    yarn.timeline-service.address:
+    - APP_TIMELINE_SERVER
+    - rpc
+    yarn.timeline-service.webapp.address:
+    - APP_TIMELINE_SERVER
+    - http
+MAPREDUCE2:
+  mapred-site:
+    mapreduce.jobhistory.address:
+    - HISTORYSERVER
+    - rpc
+    mapreduce.jobhistory.webapp.address:
+    - HISTORYSERVER
+    - http
+    mapreduce.shuffle.port:
+    - NODEMANAGER
+    - shuffle
+HBASE:
+  hbase-site:
+    hbase.master.port:
+    - HBASE_MASTER
+    - rpc
+    hbase.master.info.port:
+    - HBASE_MASTER
+    - http
+    hbase.regionserver.port:
+    - HBASE_REGIONSERVER
+    - rpc
+    hbase.regionserver.info.port:
+    - HBASE_REGIONSERVER
+    - http
+ZOOKEEPER:
+  zoo.cfg:
+    clientPort:
+    - ZOOKEEPER_SERVER
+    - client
+    admin.serverPort:
+    - ZOOKEEPER_SERVER
+    - admin
+HIVE:
+  hive-site:
+    hive.server2.thrift.port:
+    - HIVE_SERVER
+    - thrift
+    hive.server2.thrift.http.port:
+    - HIVE_SERVER
+    - http
+    hive.metastore.uris:
+    - HIVE_METASTORE
+    - thrift
+  webhcat-site:
+    templeton.port:
+    - WEBHCAT_SERVER
+    - http
+KAFKA:
+  kafka-broker:
+    port:
+    - KAFKA_BROKER
+    - client
+    listeners:
+    - KAFKA_BROKER
+    - client
+SPARK2:
+  spark2-defaults:
+    spark.history.ui.port:
+    - SPARK2_JOBHISTORYSERVER
+    - http
+  spark2-hive-site-override:
+    hive.server2.thrift.port:
+    - SPARK2_THRIFTSERVER
+    - thrift
+  spark-env:
+    spark_master_port:
+    - SPARK_MASTER
+    - rpc
+    spark_master_webui_port:
+    - SPARK_MASTER
+    - http
+    spark_worker_webui_port:
+    - SPARK_SLAVE
+    - http
+CLICKHOUSE:
+  clickhouse-config:
+    server.tcp.port:
+    - CLICKHOUSE_SERVER
+    - tcp
+    server.http.port:
+    - CLICKHOUSE_SERVER
+    - http
+    server.mysql.port:
+    - CLICKHOUSE_SERVER
+    - mysql
+REDIS:
+  redis-defaults:
+    master_port:
+    - REDIS_MASTER
+    - client
+    slave_port:
+    - REDIS_SLAVE
+    - client
+  redis-conf:
+    port:
+    - REDIS
+    - client
+NGINX:
+  nginx-conf:
+    nginx.server.port:
+    - NGINX
+    - http
+PROMETHEUS:
+  prometheus-grafana-ini:
+    server.port:
+    - PROMETHEUS_GRAFANA
+    - http
+  prometheus-yml:
+    prometheus_port:
+    - PROMETHEUS_SERVER
+    - http
+    node_exporter_port:
+    - NODE_EXPORTER
+    - metrics
+    mysql_exporter_port:
+    - MYSQLD_EXPORTER
+    - metrics
+    emq_exporter_port:
+    - EMQ_EXPORTER
+    - metrics
+    opentsdb_exporter_port:
+    - OPENTSDB_EXPORTER
+    - metrics

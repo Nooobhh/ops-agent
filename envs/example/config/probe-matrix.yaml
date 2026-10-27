@@ -1,0 +1,8 @@
+probes:
+- from: workbench
+  endpoint: rm_web
+  why: alpha-rm-web
+- from: node1
+  to: node2
+  port: 8088
+  why: alpha-rm-web-cluster-internal

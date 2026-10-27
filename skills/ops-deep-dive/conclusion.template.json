@@ -1,0 +1,13 @@
+{
+  "verdict": "conclusive",
+  "severity": "P2",
+  "root_cause": "一句话根因(必填,字符串)",
+  "evidence": [
+    "必须引用 steps[].stdout 的关键行,带具体数值与采样时刻",
+    "阴性论据(如「无活跃换页」)写这里或 root_cause,不得虚构"
+  ],
+  "remediation": [
+    "只读建议与需审批建议分开列"
+  ],
+  "oplogs": []
+}

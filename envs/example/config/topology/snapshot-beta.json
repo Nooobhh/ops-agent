@@ -1,0 +1,240 @@
+{
+  "cluster_name": "beta-cluster",
+  "clusters": [
+    "beta-cluster"
+  ],
+  "collected_at": "2026-01-01T00:00:00+00:00",
+  "component_dependencies": [],
+  "component_ports": [
+    {
+      "component": "NAMENODE",
+      "port": 8020,
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_config",
+          "path": "manual://beta/config/hdfs-site/dfs.namenode.rpc-address"
+        }
+      ],
+      "purpose": "rpc",
+      "service": "hdfs"
+    },
+    {
+      "component": "RESOURCEMANAGER",
+      "port": 8088,
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_config",
+          "path": "manual://beta/config/yarn-site/yarn.resourcemanager.webapp.address"
+        }
+      ],
+      "purpose": "http",
+      "service": "yarn"
+    }
+  ],
+  "config_relations": [],
+  "config_summary": {
+    "configuration_items": 2,
+    "host_components": 15,
+    "services": 8
+  },
+  "nodes": {
+    "node1": {
+      "components": [
+        "HDFS_CLIENT",
+        "HIVE_METASTORE",
+        "NAMENODE",
+        "RESOURCEMANAGER",
+        "ZOOKEEPER_SERVER"
+      ],
+      "fqdn": "node1.beta.example.internal",
+      "host": "198.51.100.11"
+    },
+    "node2": {
+      "components": [
+        "DATANODE",
+        "KAFKA_BROKER",
+        "NGINX",
+        "NODEMANAGER",
+        "ZOOKEEPER_SERVER"
+      ],
+      "fqdn": "node2.beta.example.internal",
+      "host": "198.51.100.12"
+    },
+    "node3": {
+      "components": [
+        "DATANODE",
+        "MYSQL_SERVER",
+        "NODEMANAGER",
+        "REDIS",
+        "ZOOKEEPER_SERVER"
+      ],
+      "fqdn": "node3.beta.example.internal",
+      "host": "198.51.100.13"
+    }
+  },
+  "platform": "beta",
+  "port_keys_unmapped": [],
+  "schema_version": 3,
+  "services": [
+    {
+      "components": {
+        "HDFS_CLIENT": [
+          "node1"
+        ],
+        "NAMENODE": [
+          "node1"
+        ]
+      },
+      "native_service": "HDFS",
+      "service": "hdfs"
+    },
+    {
+      "components": {
+        "HIVE_METASTORE": [
+          "node1"
+        ]
+      },
+      "native_service": "HIVE",
+      "service": "hive"
+    },
+    {
+      "components": {
+        "KAFKA_BROKER": [
+          "node2"
+        ]
+      },
+      "native_service": "KAFKA",
+      "service": "kafka"
+    },
+    {
+      "components": {
+        "MYSQL_SERVER": [
+          "node3"
+        ]
+      },
+      "native_service": "MYSQL",
+      "service": "mysql"
+    },
+    {
+      "components": {
+        "NGINX": [
+          "node2"
+        ]
+      },
+      "native_service": "NGINX",
+      "service": "nginx"
+    },
+    {
+      "components": {
+        "REDIS": [
+          "node3"
+        ]
+      },
+      "native_service": "REDIS",
+      "service": "redis"
+    },
+    {
+      "components": {
+        "NODEMANAGER": [
+          "node2",
+          "node3"
+        ],
+        "RESOURCEMANAGER": [
+          "node1"
+        ]
+      },
+      "native_service": "YARN",
+      "service": "yarn"
+    },
+    {
+      "components": {
+        "ZOOKEEPER_SERVER": [
+          "node1",
+          "node2",
+          "node3"
+        ]
+      },
+      "native_service": "ZOOKEEPER",
+      "service": "zookeeper"
+    }
+  ],
+  "source_system": "manual",
+  "stack": "example-1.0",
+  "stack_dependencies": [
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "YARN",
+        "native_target": "HDFS",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://beta/stack/YARN/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "yarn",
+      "target_service": "hdfs"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "HIVE",
+        "native_target": "HDFS",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://beta/stack/HIVE/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "hive",
+      "target_service": "hdfs"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "HIVE",
+        "native_target": "YARN",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://beta/stack/HIVE/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "hive",
+      "target_service": "yarn"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "KAFKA",
+        "native_target": "ZOOKEEPER",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://beta/stack/KAFKA/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "kafka",
+      "target_service": "zookeeper"
+    }
+  ],
+  "warnings": []
+}

@@ -1,0 +1,35 @@
+# Optional standalone retrieval vector backend.
+# Copy to config/vector.local.yaml for local use; the local file is gitignored.
+backend: embedded # embedded / milvus / auto
+embedded_path: build/kb-vectors.sqlite
+fallback_to_embedded: true
+timeout_seconds: 10
+
+# Required only for backend=milvus or backend=auto.
+milvus:
+  endpoint: "http://127.0.0.1:9091"
+  collection: ops_agent_chunks
+  vector_field: vector
+  token: ""
+
+# Optional embedding provider.  The local backend is loaded lazily only for a
+# semantic retrieval profile; it is not required for FTS + topology retrieval.
+embedding:
+  backend: disabled # disabled / local / external
+  model: BAAI/bge-small-zh-v1.5
+  endpoint: ""
+  api_key: ""
+  dimensions: null
+  device: cpu
+
+# Optional Cross-Encoder rerank.  It is intentionally disabled by default.
+# The reranker only runs for investigation/artifact profiles after hard
+# platform/service/topology filters and never replaces baseline facts.
+rerank:
+  backend: disabled # disabled / local / external
+  model: ""
+  endpoint: ""
+  api_key: ""
+  device: cpu
+  max_candidates: 20
+  max_length: 512

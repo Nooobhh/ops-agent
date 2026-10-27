@@ -1,0 +1,13 @@
+version: 1
+# 跨源去重规则:同一事件两个来源都告警时只推一条(按源端时间配对)。
+rules:
+  - match:
+      demo: {platform: alpha, alertname: zookeeper_server_process}
+      prometheus: {port: 2181}
+    winner: demo
+    reason: "扩展源带服务上下文;Prometheus 端口探测只说明端口通"
+  - match:
+      demo: {platform: beta, alertname: zookeeper_server_process}
+      prometheus: {port: 2181}
+    winner: demo
+    reason: "扩展源带服务上下文;Prometheus 端口探测只说明端口通"

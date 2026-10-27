@@ -1,0 +1,56 @@
+schema_version: 1
+models:
+  - id: model-primary
+    title: "主排查模型"
+    provider: openai_compatible
+    base_url: "https://gateway.example/v1"
+    api_key: "replace-in-model.local.yaml"
+    model: "replace-with-model-name"
+    default_reasoning_effort: high
+defaults:
+  auto:
+    model_id: model-primary
+    reasoning_effort: high
+    timeout_seconds: 120
+  manual:
+    model_id: model-primary
+    reasoning_effort: medium
+    timeout_seconds: 120
+  weekly:
+    model_id: model-primary
+    reasoning_effort: medium
+    timeout_seconds: 300
+  # 可选: auto 档未登记命令的低价审核模型。未配置时全部转人工审批。
+  reviewer:
+    model_id: model-primary
+    reasoning_effort: none
+    timeout_seconds: 120
+timeout_seconds: 120
+weekly_timeout_seconds: 300
+max_tool_turns: 24
+agent_policies:
+  qa:
+    model_id: model-primary
+    reasoning_effort: low
+    max_tool_turns: 8
+    model_timeout_seconds: 60
+  investigation:
+    model_id: model-primary
+    reasoning_effort: high
+    max_tool_turns: 40
+    model_timeout_seconds: 180
+  alert:
+    model_id: model-primary
+    reasoning_effort: high
+    max_tool_turns: 24
+    model_timeout_seconds: 120
+  artifact:
+    model_id: model-primary
+    reasoning_effort: medium
+    max_tool_turns: 16
+    model_timeout_seconds: 120
+  default:
+    model_id: model-primary
+    reasoning_effort: medium
+    max_tool_turns: 12
+    model_timeout_seconds: 120

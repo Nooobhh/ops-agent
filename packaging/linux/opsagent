@@ -1,0 +1,15 @@
+#!/bin/sh
+# opsagent 安装形态入口:定位安装根,数据根缺省 <安装根>/data,用当前版本自带的 Python 运行。
+# 升级(opsagent upgrade)成功后由新版本的同名文件覆盖。
+set -e
+self=$0
+while [ -h "$self" ]; do  # 允许把 bin/opsagent 软链进 PATH
+  link=$(readlink "$self")
+  case $link in /*) self=$link ;; *) self=$(dirname "$self")/$link ;; esac
+done
+home=$(cd "$(dirname "$self")/.." && pwd)
+app="$home/app/current"
+export OPSAGENT_HOME="$home"
+export OPS_AGENT_DATA_ROOT="${OPS_AGENT_DATA_ROOT:-$home/data}"
+export PYTHONUTF8=1 PYTHONNOUSERSITE=1
+exec "$app/runtime/bin/python3" "$app/scripts/opsagent.py" "$@"

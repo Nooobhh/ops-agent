@@ -1,0 +1,29 @@
+name: ci
+
+# 核心仓日常门禁:全量 pytest(挂示例环境包)、前端测试与构建、专有名词与通用敏感信息扫描
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/frontend/package-lock.json
+      - name: Python 环境
+        run: |
+          uv venv --python 3.14 .venv
+          uv pip install --python .venv/bin/python -r requirements.txt
+      - name: 专有名词与敏感信息扫描(入库文件,envs/ 除外)
+        run: .venv/bin/python scripts/noun_lint.py --check
+      - name: pytest
+        run: .venv/bin/python -m pytest -q
+      - name: 前端
+        working-directory: web/frontend
+        run: npm ci && npm test && npm run build

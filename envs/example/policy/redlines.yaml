@@ -1,0 +1,3 @@
+# 本环境的命令红线补充:格式同核心 lib/data/filter_rules.yaml,列表项追加在核心规则之后。
+# 只许收紧(forbidden_* / write_*),不许放宽(allow_patterns 由核心拒收)。示例环境不加。
+write_patterns: []

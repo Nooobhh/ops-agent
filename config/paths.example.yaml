@@ -1,0 +1,7 @@
+# 复制为 config/paths.local.yaml(gitignore)指定知识库仓、records 仓与环境包位置。
+# 相对路径按数据根(缺省 ops-agent 仓库根)解析;缺省(无此文件)为 <数据根>/knowledge、<数据根>/records,免安装包即此布局。
+# 知识库还可用环境变量 OPS_AGENT_KNOWLEDGE_ROOT 临时覆盖(worktree/测试);records 无环境变量入口。
+knowledge_root: ../knowledge
+records_root: ../records
+# 环境包(环境数据目录);缺省 <数据根>/env/,再缺省用程序自带的示例包 envs/example
+# env_pack: ../ops-agent-env-<id>

@@ -1,0 +1,10 @@
+version: 1
+platforms:
+  alpha:
+  - path: /opt
+    note: 部署根
+  - path: /var/lib/mysql
+    note: MySQL 数据目录
+  beta:
+  - path: /opt
+    note: 部署根

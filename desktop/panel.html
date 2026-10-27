@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; user-select: none; }
+  body {
+    box-sizing: border-box; display: flex; flex-direction: column; padding: 14px 16px 10px;
+    border: 1px solid #c8ccd1; background: #fff; color: #1f2328;
+    font: 13px "Microsoft YaHei UI", "Segoe UI", sans-serif;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; }
+  h1 { margin: 0; font-size: 14px; font-weight: 600; }
+  .muted { color: #656d76; font-size: 12px; }
+  .status { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 15px; font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #8a8a8a; }
+  .err { min-height: 16px; margin-top: 4px; color: #b42318; font-size: 12px; word-break: break-all; }
+  .hint { margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: #fff8c5; font-size: 12px; }
+  button { font: inherit; cursor: pointer; }
+  button:disabled { cursor: default; }
+  .primary { width: 100%; height: 32px; margin-top: 6px; border: 0; border-radius: 6px; background: #0f6cbd; color: #fff; }
+  .primary:disabled { background: #c8ccd1; }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .btn { height: 28px; border: 1px solid #c8ccd1; border-radius: 6px; background: #f6f8fa; color: #1f2328; }
+  .btn:disabled { color: #a0a6ad; }
+  .link { padding: 0; border: 0; background: none; color: #0f6cbd; font-size: 12px; }
+  .link:disabled { color: #a0a6ad; }
+  section { margin-top: 10px; padding-top: 8px; border-top: 1px solid #eaeef2; }
+  .line { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .notes { max-height: 64px; margin-top: 4px; overflow-y: auto; white-space: pre-wrap; font-size: 12px; color: #424a53; user-select: text; }
+  .ok { color: #1a7f37; font-size: 12px; } .bad { color: #b42318; font-size: 12px; word-break: break-all; }
+  progress { display: block; width: 100%; height: 6px; margin-top: 4px; accent-color: #0f6cbd; }
+  .confirm { margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: #fff1e5; font-size: 12px; }
+  input[type=text], input[type=password] { box-sizing: border-box; width: 100%; height: 24px; margin-top: 3px; padding: 0 6px;
+    border: 1px solid #c8ccd1; border-radius: 4px; font: 12px Consolas, monospace; }
+  label.field { display: block; margin-top: 5px; font-size: 12px; color: #424a53; }
+  label.check { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .hidden { display: none !important; }
+  footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 6px; }
+</style>
+</head>
+<body>
+  <header><h1>ops-agent 中台</h1><span class="muted" id="ver"></span></header>
+  <div class="status"><span class="dot" id="dot"></span><span id="label">读取中…</span></div>
+  <div class="err" id="err"></div>
+  <div class="hint hidden" id="overflow">托盘图标在任务栏的 ^ 里:把它拖到任务栏上可常驻显示。</div>
+  <button class="primary" id="open">打开控制台</button>
+  <div class="row">
+    <button class="btn" id="start">启动</button><button class="btn" id="stop">停止</button><button class="btn" id="restart">重启</button>
+  </div>
+
+  <section id="upd">
+    <div class="line"><span id="updTitle">更新</span><button class="link" id="check">检查更新</button></div>
+    <div class="muted" id="updInfo"></div>
+    <progress class="hidden" id="bar" max="100" value="0"></progress>
+    <div class="notes hidden" id="notes"></div>
+    <button class="primary hidden" id="apply">更新</button>
+    <div class="confirm hidden" id="confirm">
+      <div id="confirmText"></div>
+      <div class="line" style="margin-top:6px"><button class="link" id="confirmYes">仍要更新</button><button class="link" id="confirmNo">取消</button></div>
+    </div>
+    <div id="result"></div>
+    <div class="bad" id="checkErr"></div>
+  </section>
+
+  <section class="hidden" id="settings">
+    <label class="field">发布仓(owner/name)<input type="text" id="repo" spellcheck="false"></label>
+    <label class="field">token(只读该仓)<input type="password" id="token" spellcheck="false"></label>
+    <label class="field">代理(可空)<input type="text" id="proxy" spellcheck="false" placeholder="http://127.0.0.1:7897"></label>
+    <div class="line" style="margin-top:6px">
+      <button class="link" id="save">保存</button><button class="link" id="clearToken">清除 token</button><button class="link" id="closeSettings">收起</button>
+    </div>
+    <div class="bad" id="saveErr"></div>
+  </section>
+
+  <footer>
+    <label class="check"><input type="checkbox" id="autostart">登录后自动启动</label>
+    <button class="link" id="openSettings">更新设置</button>
+  </footer>
+  <div class="line" style="margin-top:4px">
+    <button class="link" id="log">查看日志</button><span class="muted" id="shell"></span><button class="link" id="quit">退出</button>
+  </div>
+<script>
+  const colors = { stopped: '#8a8a8a', starting: '#e0a100', running: '#2e9e44', unresponsive: '#e0a100', stopping: '#e0a100', failed: '#d03b3b' };
+  const $ = (id) => document.getElementById(id);
+  const show = (id, on) => $(id).classList.toggle('hidden', !on);
+  let last = null;
+
+  window.refresh = async function () {
+    const s = await window.shell('state');
+    last = s;
+    const live = s.state === 'running' || s.state === 'unresponsive';
+    const idle = !s.busy && !s.quitting;
+    $('ver').textContent = s.version;
+    $('shell').textContent = '外壳 ' + s.shell;
+    $('dot').style.background = colors[s.state] || colors.stopped;
+    $('label').textContent = s.quitting ? '正在退出…' : s.label;
+    $('err').textContent = s.error || '';
+    show('overflow', s.overflow);
+    $('open').disabled = !live;
+    $('start').disabled = !idle || !(s.state === 'stopped' || s.state === 'failed');
+    $('stop').disabled = !idle || !(live || s.state === 'starting');
+    $('restart').disabled = !idle || !live;
+    $('quit').disabled = s.quitting;
+    $('autostart').checked = s.autostart;
+
+    const u = s.update;
+    $('check').disabled = u.checking || u.updating || !u.repo;
+    if (!u.repo) {
+      $('updTitle').textContent = '更新';
+      $('updInfo').textContent = '未配置更新源,点「更新设置」填写';
+    } else if (u.updating) {
+      $('updTitle').textContent = '正在更新到 ' + (u.available ? u.available.version : '');
+      $('updInfo').textContent = u.progress;
+    } else if (u.available) {
+      $('updTitle').textContent = '有新版本 ' + u.available.version;
+      $('updInfo').textContent = '';
+    } else {
+      $('updTitle').textContent = '更新';
+      $('updInfo').textContent = u.checking ? '检查中…' : (u.error ? '' : (u.last_check ? '已是最新(' + u.last_check + ' 检查)' : '尚未检查'));
+    }
+    show('bar', u.updating && u.percent >= 0);
+    $('bar').value = Math.max(u.percent, 0);
+    show('notes', !!u.available && !!u.available.notes);
+    $('notes').textContent = u.available ? u.available.notes : '';
+    show('apply', !!u.available && !u.updating);
+    $('apply').disabled = !idle;
+    // 更新结果与检查错误分两行:上次更新的结果不能盖住这次检查的错误
+    $('result').className = u.result_error ? 'bad' : 'ok';
+    $('result').textContent = u.result || '';
+    $('checkErr').textContent = u.repo ? (u.error || '') : '';
+  };
+
+  const call = (method, ...params) => window.shell(method, ...params).then(window.refresh);
+  for (const [id, fn] of Object.entries({ open: 'openConsole', start: 'start', stop: 'stop', restart: 'restart', log: 'openLog', quit: 'quit', check: 'checkUpdate' })) {
+    $(id).addEventListener('click', () => call(fn));
+  }
+  async function apply(confirmed) {
+    show('confirm', false);
+    const r = await window.shell('applyUpdate', confirmed).catch((e) => ({ error: e.message }));
+    if (r && r.confirm) {
+      const parts = [];
+      if (r.confirm.tasks) parts.push(r.confirm.tasks + ' 个排查任务');
+      if (r.confirm.weekly_jobs) parts.push(r.confirm.weekly_jobs + ' 个周报生成');
+      $('confirmText').textContent = parts.join('、') + '正在进行,更新会重启中台。';
+      show('confirm', true);
+    } else if (r && r.error) {
+      $('result').className = 'bad'; $('result').textContent = r.error;
+    }
+    window.refresh();
+  }
+  $('apply').addEventListener('click', () => apply(false));
+  $('confirmYes').addEventListener('click', () => apply(true));
+  $('confirmNo').addEventListener('click', () => show('confirm', false));
+  $('autostart').addEventListener('change', (e) => call('setAutostart', e.target.checked));
+
+  $('openSettings').addEventListener('click', () => {
+    const u = last ? last.update : {};
+    $('repo').value = u.repo || '';
+    $('token').value = '';
+    $('token').placeholder = u.token_set ? '已配置,留空沿用' : '公开仓可不填';
+    $('proxy').value = u.proxy || '';
+    $('saveErr').textContent = '';
+    show('settings', true); show('upd', false);
+  });
+  const closeSettings = () => { show('settings', false); show('upd', true); };
+  $('closeSettings').addEventListener('click', closeSettings);
+  async function save(clearToken) {
+    try {
+      await window.shell('saveUpdateConfig', { repo: $('repo').value.trim(), token: $('token').value.trim(), proxy: $('proxy').value.trim(), clear_token: clearToken });
+      closeSettings();
+    } catch (e) { $('saveErr').textContent = e.message; }
+    window.refresh();
+  }
+  $('save').addEventListener('click', () => save(false));
+  $('clearToken').addEventListener('click', () => save(true));
+
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.shell('hide'); });
+  setInterval(window.refresh, 1000);
+  window.refresh();
+</script>
+</body>
+</html>

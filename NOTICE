@@ -1,0 +1,9 @@
+ops-agent
+Copyright 2026 ops-agent contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes third-party code:
+
+- desktop/internal/webview2/ — adapted from go-webview2 (https://github.com/jchv/go-webview2),
+  licensed under the MIT License; see desktop/internal/webview2/LICENSE.

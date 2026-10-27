@@ -1,0 +1,65 @@
+# ~/.ops-agent/ 下的本机认证配置(账号/口令/TOTP 种子)是 home 层文件,不在 repo 内,此处无需忽略规则;
+# 仅注释以避免歧义,任何等价路径不得进入版本库
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+config/local-dev.yaml
+config/credentials.json
+config/credentials.json*.lock
+config/auth-profiles.json
+config/auth-profiles.json*.lock
+config/model.local.yaml
+config/vector.local.yaml
+config/user.local.yaml
+config/.user.local.yaml.lock
+config/plugins.local.yaml
+config/.plugins.local.yaml.lock
+config/weekly-report.local.yaml
+models/
+config/.model.local.yaml.lock
+# 知识库与排查记录已剥离为独立仓(knowledge/.git、records/.git),物理位置不变
+# 供代码按 repo-root 相对路径读取;各自忽略规则见其仓内 .gitignore
+/knowledge/
+/records/
+# 设计文档含集群拓扑/内网地址,不入主仓;磁盘上照常供 agent 读取,不做独立仓
+/docs/specs/
+/docs/plans/
+/docs/ohaze/
+state/*
+!state/.gitkeep
+.DS_Store
+build/*.json
+build/*.sqlite
+build/*.sqlite-shm
+build/*.sqlite-wal
+build/*.sqlite-journal
+build/kb-vectors.sqlite
+build/kb-recall-eval.md
+build/kb-recall-eval-before.md
+build/kb-recall-eval-ts.md
+build/*.html
+!build/.gitkeep
+.ohaze/
+.worktrees/
+.superpowers/
+.claude/worktrees/
+# codegraph 本地代码图索引(每台机器各自生成,不入库)
+.codegraph/
+web/frontend/node_modules/
+web/frontend/dist/
+web/frontend/*.tsbuildinfo
+web/frontend/vite.config.js
+web/frontend/vite.config.d.ts
+# 发布产物(scripts/build_package.py、scripts/release.py)
+build/windows/
+build/release/
+config/paths.local.yaml
+# 数据根 = 仓库根(开发态)时的环境数据目录
+/env/
+
+# Agent 回放评估:用例/快照/运行产物含内网数据,仅本地
+build/agent-replay/
+build/agent-replay-eval.md
+build/a1/
+build/a3/

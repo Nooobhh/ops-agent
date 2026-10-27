@@ -1,0 +1,58 @@
+# alpha 集群主机清单(虚构)。endpoints 条目带 source 溯源。
+platform: alpha
+cluster_name: alpha-cluster
+collected_at: '2026-01-01T00:00:00+00:00'
+endpoints:
+  prometheus:
+    url: http://127.0.0.1:9090
+    source: manual
+    note: 示例占位
+  rm_web:
+    url: http://node1.alpha.example.internal:8088
+    source: manual
+  nn_http:
+    url: http://node1.alpha.example.internal:50070
+    source: manual
+  zookeeper_client:
+    host: ''
+    port: 2181
+    source: manual
+nodes:
+  node1:
+    host: 192.0.2.11
+    components:
+    - NAMENODE
+    - ZKFC
+    - RESOURCEMANAGER
+    - HIVE_METASTORE
+    - HIVE_SERVER
+    - ZOOKEEPER_SERVER
+    - HBASE_MASTER
+    - HDFS_CLIENT
+    - YARN_CLIENT
+    - HIVE_CLIENT
+  node2:
+    host: 192.0.2.12
+    components:
+    - NAMENODE
+    - ZKFC
+    - RESOURCEMANAGER
+    - DATANODE
+    - NODEMANAGER
+    - JOURNALNODE
+    - ZOOKEEPER_SERVER
+    - HBASE_REGIONSERVER
+    - KAFKA_BROKER
+    - HDFS_CLIENT
+  node3:
+    host: 192.0.2.13
+    components:
+    - DATANODE
+    - NODEMANAGER
+    - JOURNALNODE
+    - ZOOKEEPER_SERVER
+    - HBASE_REGIONSERVER
+    - HISTORYSERVER
+    - SPARK2_JOBHISTORYSERVER
+    - SPARK2_THRIFTSERVER
+    - MYSQL_SERVER

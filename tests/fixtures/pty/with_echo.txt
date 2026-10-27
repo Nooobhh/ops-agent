@@ -1,0 +1,3 @@
+echo hello; printf '\n@OPS:{token}:%s@\n' $?
+hello
+@OPS:{token}:0@

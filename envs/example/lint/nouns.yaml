@@ -1,0 +1,7 @@
+# 专有名词禁用词表(示例):核心仓不应出现的本环境专有内容。私有环境包在此登记公司名、内网地址段、
+# 内网域名、集群原名、人名等;scripts/noun_lint.py 连同内置通用敏感模式一起扫 envs/ 外的入库文件。
+version: 1
+terms:
+  - id: example-domain
+    label: 示例内网域名
+    pattern: '(?i)corp\.example-internal\.test'

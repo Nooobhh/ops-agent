@@ -1,0 +1,140 @@
+# 每服务底座采集配置:管理面服务名 → 文档 service slug + 配置白名单 + 实测探针
+service_map:
+  HDFS: hdfs
+  YARN: yarn
+  MAPREDUCE2: mapreduce
+  HBASE: hbase
+  HIVE: hive
+  SPARK2: spark
+  KAFKA: kafka
+  ZOOKEEPER: zookeeper
+  CLICKHOUSE: clickhouse
+  REDIS: redis
+  NGINX: nginx
+  PROMETHEUS: prometheus
+config_whitelist:
+  HDFS:
+    hdfs-site:
+    - dfs.namenode.name.dir
+    - dfs.datanode.data.dir
+    - dfs.replication
+    - dfs.namenode.http-address
+    - dfs.datanode.du.reserved
+    core-site:
+    - fs.defaultFS
+    - fs.getspaceused.classname
+    hadoop-env:
+    - namenode_heapsize
+    - dtnode_heapsize
+    - hdfs_log_dir_prefix
+  YARN:
+    yarn-site:
+    - yarn.nodemanager.resource.memory-mb
+    - yarn.nodemanager.resource.cpu-vcores
+    - yarn.nodemanager.vmem-check-enabled
+    - yarn.nodemanager.pmem-check-enabled
+    - yarn.resourcemanager.max-completed-applications
+    yarn-env:
+    - yarn_log_dir_prefix
+  HBASE:
+    hbase-site:
+    - hbase.rootdir
+    - hbase.regionserver.handler.count
+    hbase-env:
+    - hbase_regionserver_heapsize
+    - hbase_master_heapsize
+    - hbase_log_dir
+  HIVE:
+    hive-site:
+    - hive.metastore.uris
+    - hive.server2.thrift.port
+    hive-env:
+    - hive_heapsize
+    - hive_log_dir
+  SPARK2:
+    spark2-defaults:
+    - spark.driver.memory
+    - spark.executor.memory
+    - spark.executor.cores
+    spark2-thrift-sparkconf:
+    - spark.yarn.am.memory
+    - spark.dynamicAllocation.maxExecutors
+    spark2-env:
+    - spark_log_dir
+  KAFKA:
+    kafka-broker:
+    - log.dirs
+    - log.retention.hours
+    kafka-env:
+    - kafka_log_dir
+  ZOOKEEPER:
+    zoo.cfg:
+    - dataDir
+    - clientPort
+    zookeeper-env:
+    - zk_log_dir
+probes:
+  NAMENODE:
+    process: proc_namenode
+    ports:
+    - 8020
+  DATANODE:
+    process: proc_datanode
+    ports:
+    - 50010
+    - 9866
+  JOURNALNODE:
+    process: proc_journalnode
+    ports:
+    - 8485
+  ZKFC:
+    process: proc_zkfc
+    ports:
+    - 8019
+  RESOURCEMANAGER:
+    process: proc_resourcemanager
+    ports:
+    - 8088
+  NODEMANAGER:
+    process: proc_nodemanager
+    ports:
+    - 8042
+  HISTORYSERVER:
+    process: proc_historyserver
+    ports:
+    - 19888
+  HBASE_MASTER:
+    process: proc_master
+    ports: []
+  HBASE_REGIONSERVER:
+    process: proc_regionserver
+    ports:
+    - 16030
+  HIVE_SERVER:
+    process: hiveserver2
+    ports:
+    - 10000
+  HIVE_METASTORE:
+    process: HiveMetaStore
+    ports:
+    - 9083
+  SPARK2_THRIFTSERVER:
+    process: HiveThriftServer2
+    ports: []
+  ZOOKEEPER_SERVER:
+    process: proc_zookeeper
+    ports:
+    - 2181
+  KAFKA_BROKER:
+    process: kafka.Kafka
+    ports:
+    - 6667
+  NGINX:
+    process: 'nginx: master'
+    ports: []
+  REDIS:
+    process: redis-server
+    ports: []
+  MYSQL_SERVER:
+    process: mysqld
+    ports: []

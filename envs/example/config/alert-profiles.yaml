@@ -1,0 +1,10 @@
+version: 1
+default_class: watch
+class_config:
+  watch: {min_duration_seconds: 300}
+  chronic: {escalate_host_delta: 2, escalate_state_up: true}
+  flapping: {flap_max_seconds: 300}
+  ignore: {}
+profiles:
+  - {match_name: retired_service_process, class: ignore, reason: "服务已退役,告警定义未清理"}
+  - {match_name: datanode_storage, match_env: beta, class: chronic, baseline_host_count: 2, reason: "存储长期偏高,只关注恶化"}

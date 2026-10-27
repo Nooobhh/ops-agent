@@ -1,0 +1,5 @@
+start_day: thursday
+end_day: wednesday
+report:                         # 周报的环境部分;模板路径相对环境包
+  title: 示例运维周报
+  template: skills/weekly-report/assets/template.docx

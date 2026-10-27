@@ -1,0 +1,75 @@
+# 组件 → 知识库服务的映射(管理面组件名比服务词表细),与 endpoint 名提示、服务别名。
+# 核心 lib/kb/topology 读它:未映射的组件仍出现在拓扑图并报数据缺口,不猜。
+# endpoint_hints 按顺序匹配 endpoint 名里的子串。
+version: 1
+components:
+  APP_TIMELINE_SERVER: yarn
+  CLICKHOUSE_CLIENT: clickhouse
+  CLICKHOUSE_SERVER: clickhouse
+  DATANODE: hdfs
+  HBASE_CLIENT: hbase
+  HBASE_MASTER: hbase
+  HBASE_REGIONSERVER: hbase
+  HCAT: hive
+  HDFS_CLIENT: hdfs
+  HISTORYSERVER: mapreduce
+  HIVE_CLIENT: hive
+  HIVE_METASTORE: hive
+  HIVE_SERVER: hive
+  JOURNALNODE: hdfs
+  KAFKA_BROKER: kafka
+  KAFKA_CONNECTOR: kafka
+  MAPREDUCE2_CLIENT: mapreduce
+  MYSQLD_EXPORTER: mysql
+  MYSQL_SERVER: mysql
+  NAMENODE: hdfs
+  NGINX: nginx
+  NODEMANAGER: yarn
+  NODE_EXPORTER: prometheus
+  PIG: mapreduce
+  PROMETHEUS_GRAFANA: prometheus
+  PROMETHEUS_SERVER: prometheus
+  REDIS: redis
+  REDIS_MASTER: redis
+  REDIS_SENTINEL: redis
+  REDIS_SLAVE: redis
+  RESOURCEMANAGER: yarn
+  SECONDARY_NAMENODE: hdfs
+  SPARK2_CLIENT: spark
+  SPARK2_JOBHISTORYSERVER: spark
+  SPARK2_THRIFTSERVER: spark
+  SPARK_MASTER: spark
+  SPARK_SLAVE: spark
+  SPARK_THRIFTSERVER: spark
+  SQOOP: mapreduce
+  WEBHCAT_SERVER: hive
+  YARN_CLIENT: yarn
+  ZKFC: hdfs
+  ZOOKEEPER_CLIENT: zookeeper
+  ZOOKEEPER_SERVER: zookeeper
+endpoint_hints:
+- - hbase
+  - hbase
+- - hive_metastore
+  - hive
+- - jobhistory
+  - mapreduce
+- - nn_http
+  - hdfs
+- - prometheus
+  - prometheus
+- - rm_web
+  - yarn
+- - zookeeper
+  - zookeeper
+service_aliases:
+  zookeeper: zookeeper
+  zookeeper server: zookeeper
+  hdfs: hdfs
+  hbase: hbase
+  kafka: kafka
+  spark: spark
+  spark2: spark
+  yarn: yarn
+  hive: hive
+  mysql: mysql

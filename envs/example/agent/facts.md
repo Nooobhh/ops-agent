@@ -1,0 +1,1 @@
+- 示例环境:alpha 与 beta 为两个虚构 Hadoop 集群,节点名都是 node1~3;排查前可先 kb_search,再以现场数据为准

@@ -1,0 +1,194 @@
+version: 1
+diagnostics:
+  - id: system.uptime
+    platforms: [alpha, beta]
+    params: {}
+    command: "uptime"
+    timeout_seconds: 15
+  - id: system.memory_summary
+    platforms: [alpha, beta]
+    params: {}
+    command: "free -m"
+    timeout_seconds: 15
+  - id: system.vmstat_sample
+    platforms: [alpha, beta]
+    params:
+      samples: {type: integer, enum: [3, 5]}
+    command_template: "vmstat 1 {samples}"
+    timeout_seconds: 15
+  - id: system.disk_summary
+    platforms: [alpha, beta]
+    params: {}
+    command: "df -P"
+    timeout_seconds: 30
+  - id: system.process_list
+    platforms: [alpha, beta]
+    params: {}
+    command: "ps -eo pid,args | head -200"
+    timeout_seconds: 30
+  - id: system.cluster_time
+    platforms: [alpha, beta]
+    params: {}
+    command: "date -Is; date +%s"
+    timeout_seconds: 15
+  - id: net.port_check
+    platforms: [alpha, beta]
+    params:
+      port: {type: integer, min: 1, max: 65535}
+    command_template: "ss -ltnp 2>/dev/null | {{ grep -E -- ':{port}([[:space:]]|$)' || echo port {port} is not listening; }} | head -20"
+    timeout_seconds: 15
+  - id: fs.list_dir
+    platforms: [alpha, beta]
+    note: "按修改时间倒序列登记根目录下的匹配项(文件与子目录都列,第二列 %y 标类型:f=文件 d=目录);权限不足等错误进 stderr 不吞,空结果与不可读可区分"
+    params:
+      dir: {type: string, enum_from: fs_roots}
+      pattern: {type: text, max_length: 64,
+                pattern: '^(?!.*\.\.)[A-Za-z0-9._*?-]+$'}
+      limit: {type: integer, min: 1, max: 100}
+    command_template: "find -- {dir} -maxdepth 1 -mindepth 1 -name {pattern} -printf '%T@ %y %s %TY-%Tm-%Td %TH:%TM %p\\n' | sort -nr | head -n {limit}"
+    timeout_seconds: 30
+  - id: system.top_cpu
+    platforms: [alpha, beta]
+    params: {}
+    command: "top -bn1 | head -30"
+    timeout_seconds: 20
+  - id: system.top_memory
+    platforms: [alpha, beta]
+    params: {}
+    command: "ps -wweo pid,rss,args | sort -k2 -rn | head -20 | cut -c1-200"
+    timeout_seconds: 20
+  - id: system.oom_history
+    platforms: [alpha, beta]
+    params: {}
+    command: "dmesg -T | grep -iE 'killed process|out of memory' | tail -20"
+    timeout_seconds: 20
+  - id: component.process_check
+    platforms: [alpha, beta]
+    params:
+      component: {type: string, enum: [datanode, namenode, journalnode, zkfc,
+                                       nodemanager, resourcemanager, regionserver,
+                                       hbasemaster, zookeeper, kafka, metastore,
+                                       hiveserver2, thriftserver, elasticsearch,
+                                       emqx, mysql, nginx, clickhouse]}
+    value_maps:
+      component:
+        datanode: "proc_datanode"
+        namenode: "proc_namenode"
+        journalnode: "proc_journalnode"
+        zkfc: "proc_zkfc"
+        nodemanager: "proc_nodemanager"
+        resourcemanager: "proc_resourcemanager"
+        regionserver: "proc_regionserver"
+        hbasemaster: "proc_master"
+        zookeeper: "proc_zookeeper"
+        kafka: "kafka[.]Kafka"
+        metastore: "HiveMetaStore"
+        hiveserver2: "hiveserver2"
+        thriftserver: "HiveThriftServer2"
+        elasticsearch: "elasticsearch"
+        emqx: "beam[.]smp"
+        mysql: "mysqld"
+        nginx: "nginx"
+        clickhouse: "clickhouse-server"
+    command_template: "ps -wweo pid,args | grep -E '{component}' | grep -v grep | cut -c1-200"
+    timeout_seconds: 20
+
+  - id: mysql.error_log_files
+    platforms: [alpha, beta]
+    note: "查找 MySQL 数据目录中的 error log 文件；仅返回文件名，不读取数据库数据文件"
+    params: {}
+    command: "find /var/lib/mysql -maxdepth 1 -type f -name '*.err' -print | head -20"
+    timeout_seconds: 20
+
+  # ---- 日志诊断:log_dir 合法值 = config/log-catalog.yaml 登记的绝对路径 ----
+  # 目录属于哪个服务/在哪些节点,见 run_diagnostic 工具描述附带的 log_dirs 清单;
+  # 跨节点排查:先用 MySQL 插件的 ts_list_task_runs 等定位执行机,再把 node 指向该机
+  - id: logs.list
+    platforms: [alpha, beta]
+    note: "subdir 传 . 即目录本身;可传相对子目录(如 process)下钻"
+    params:
+      log_dir: {type: string, enum_from: log_catalog}
+      subdir: {type: text, max_length: 128,
+               pattern: '^(?!.*\.\.)(?:\.|[A-Za-z0-9._][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*)$'}
+      lines: {type: integer, min: 5, max: 100}
+    command_template: "ls -lt {log_dir}/{subdir} | head -{lines}"
+    timeout_seconds: 15
+  - id: logs.tail
+    platforms: [alpha, beta]
+    note: "file 为 log_dir 下相对路径,可含子目录;压缩归档不可读"
+    params:
+      log_dir: {type: string, enum_from: log_catalog}
+      # 压缩归档读出来是二进制,grep 只回「Binary file matches」,易被当成"匹配到了"
+      file: {type: text, max_length: 160,
+             pattern: '^(?!.*\.\.)(?!.*\.(?:gz|bz2|xz|zip|zst|tgz)$)[A-Za-z0-9._][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*$'}
+      lines: {type: integer, min: 1, max: 500}
+    command_template: "tail -n {lines} {log_dir}/{file}"
+    timeout_seconds: 30
+  - id: logs.grep
+    platforms: [alpha, beta]
+    note: "全文件字面量匹配,输出带行号,保留最后 lines 条(最新);before/after 为
+      grep -B/-A 上下文行数,0 即无上下文"
+    params:
+      log_dir: {type: string, enum_from: log_catalog}
+      file: {type: text, max_length: 160,
+             pattern: '^(?!.*\.\.)(?!.*\.(?:gz|bz2|xz|zip|zst|tgz)$)[A-Za-z0-9._][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*$'}
+      keyword: {type: text, max_length: 64}
+      before: {type: integer, min: 0, max: 10}
+      after: {type: integer, min: 0, max: 10}
+      lines: {type: integer, min: 1, max: 200}
+    command_template: "grep -n -F -B {before} -A {after} -- {keyword} {log_dir}/{file} | tail -n {lines}"
+    timeout_seconds: 45
+  - id: logs.find
+    platforms: [alpha, beta]
+    note: "按名称模式+修改时间窗找文件(name 支持 * ? 通配);定位当天日志/流程定义文件用"
+    params:
+      log_dir: {type: string, enum_from: log_catalog}
+      subdir: {type: text, max_length: 128,
+               pattern: '^(?!.*\.\.)(?:\.|[A-Za-z0-9._][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*)$'}
+      # 失败排查常要回看一个多月前的调度,天数放到 90(仍有 maxdepth 与 head 兜底)
+      name: {type: text, max_length: 128,
+             pattern: '^[A-Za-z0-9._*?][A-Za-z0-9._*?-]*$'}
+      depth: {type: integer, min: 1, max: 4}
+      days: {type: integer, min: 1, max: 90}
+    command_template: "find {log_dir}/{subdir} -maxdepth {depth} -name {name} -mtime -{days} 2>/dev/null | head -60"
+    timeout_seconds: 45
+  - id: logs.grep_files
+    platforms: [alpha, beta]
+    params:
+      log_dir: {type: string, enum_from: log_catalog}
+      subdir: {type: text, max_length: 128,
+               pattern: '^(?!.*\.\.)(?:\.|[A-Za-z0-9._][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*)$'}
+      keyword: {type: text, max_length: 64}
+      days: {type: integer, min: 1, max: 30}
+    command_template: "find {log_dir}/{subdir} -maxdepth 1 -name '*.log' -mtime -{days} 2>/dev/null | head -200 | xargs -r grep -l -F -- {keyword} 2>/dev/null | head -20"
+    timeout_seconds: 60
+
+  - id: hdfs.dfsadmin_report
+    platforms: [alpha, beta]
+    params: {}
+    # 必须切到 hdfs 用户:Linux root 不是 HDFS superuser,直接跑报
+    # 「Access denied for user root. Superuser privilege is required」。
+    # 报告结构:约 19 行概览 + 每 DataNode 约 19 行 + 末尾 Dead datanodes 段;
+    command: "sudo -n -u hdfs hdfs dfsadmin -report | head -400"
+    timeout_seconds: 60
+  - id: yarn.app_list
+    platforms: [alpha, beta]
+    params:
+      state: {type: string, enum: [RUNNING, ACCEPTED, FAILED, KILLED, FINISHED]}
+    # 2>/dev/null 滤掉 6 行 YARN_CONF_DIR 一类弃用告警,否则纯噪音吃掉 head 额度
+    command_template: "yarn application -list -appStates {state} 2>/dev/null | head -60"
+    timeout_seconds: 60
+  - id: yarn.app_status
+    platforms: [alpha, beta]
+    params:
+      app_id: {type: token, max_length: 64, pattern: '^application_[0-9]+_[0-9]+$'}
+    command_template: "yarn application -status {app_id} 2>/dev/null"
+    timeout_seconds: 30
+  - id: jvm.gc_stat
+    platforms: [alpha, beta]
+    params:
+      pid: {type: integer, min: 1, max: 4194304}
+      mode: {type: string, enum: [gc, gcutil]}
+    command_template: "jstat -{mode} {pid}"
+    timeout_seconds: 20
+approved_actions: []

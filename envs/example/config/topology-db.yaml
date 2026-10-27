@@ -1,0 +1,17 @@
+# 独立数据库集群(虚构):一主一从。
+platform: db
+cluster_name: db-cluster
+collected_at: '2026-01-01T00:00:00+00:00'
+nodes:
+  db1:
+    host: 203.0.113.11
+    components:
+    - MYSQL_SERVER
+    role: MySQL 主库
+    status: observed-active
+  db2:
+    host: 203.0.113.12
+    components:
+    - MYSQL_SERVER
+    role: MySQL 从库
+    status: observed-active

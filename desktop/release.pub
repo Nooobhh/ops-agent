@@ -1,0 +1,3 @@
+# 发布签名公钥(ed25519),一行一把;换钥时新旧并存一版。私钥只在发版的 mac 上:~/.ops-agent/release-signing.key
+# 生成:cd desktop && go run ./cmd/opsagent-release keygen
+ed25519 6n+vpKBr65IHbseiR6OS2yutlg+Mj0PtfuFqSJFUcac= 2026-10-25 生成

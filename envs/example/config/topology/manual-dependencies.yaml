@@ -1,0 +1,6 @@
+# 采集不到的服务依赖:栈未声明、配置也推不出,但确有依赖。人工维护,每条写明依据。
+# 结构:平台 → [{source: 依赖方服务, target: 被依赖服务, purpose: 依据}]
+alpha:
+  - source: spark
+    target: hive
+    purpose: Spark SQL 经 Hive Metastore 读表元数据(示例)

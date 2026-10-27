@@ -1,0 +1,5 @@
+# Optional local semantic retrieval runtime.  The same dependency provides the
+# BGE embedding model and the optional Cross-Encoder rerank model. Keep this
+# out of the base requirements so the normal middle-platform/desktop package
+# stays small.
+sentence-transformers>=3.0,<6

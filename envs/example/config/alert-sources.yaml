@@ -1,0 +1,14 @@
+version: 1
+# notify:中台是否推送该来源的告警(默认值;本机在告警规则页切换)。
+sources:
+  prometheus-central:
+    type: prometheus
+    plugin: prometheus          # 经 Prometheus 插件(MCP)取数;平台按插件 scope 的标签映射
+    notify: false
+  demo-alpha: {type: demo, platform: alpha, notify: false}   # 环境包扩展源,按集群各一个
+  demo-beta: {type: demo, platform: beta, notify: false}
+poll:
+  auto_triage_enabled: false
+  triage_concurrency: 3
+  retrigger_suppress_minutes: 30
+  source_fail_notify_after: 3

@@ -1,0 +1,380 @@
+{
+  "cluster_name": "alpha-cluster",
+  "clusters": [
+    "alpha-cluster"
+  ],
+  "collected_at": "2026-01-01T00:00:00+00:00",
+  "component_dependencies": [],
+  "component_ports": [
+    {
+      "component": "NAMENODE",
+      "port": 8020,
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_config",
+          "path": "manual://alpha/config/hdfs-site/dfs.namenode.rpc-address"
+        }
+      ],
+      "purpose": "rpc",
+      "service": "hdfs"
+    },
+    {
+      "component": "RESOURCEMANAGER",
+      "port": 8088,
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_config",
+          "path": "manual://alpha/config/yarn-site/yarn.resourcemanager.webapp.address"
+        }
+      ],
+      "purpose": "http",
+      "service": "yarn"
+    }
+  ],
+  "config_relations": [],
+  "config_summary": {
+    "configuration_items": 2,
+    "host_components": 29,
+    "services": 9
+  },
+  "nodes": {
+    "node1": {
+      "components": [
+        "HBASE_MASTER",
+        "HDFS_CLIENT",
+        "HIVE_CLIENT",
+        "HIVE_METASTORE",
+        "HIVE_SERVER",
+        "NAMENODE",
+        "RESOURCEMANAGER",
+        "YARN_CLIENT",
+        "ZKFC",
+        "ZOOKEEPER_SERVER"
+      ],
+      "fqdn": "node1.alpha.example.internal",
+      "host": "192.0.2.11"
+    },
+    "node2": {
+      "components": [
+        "DATANODE",
+        "HBASE_REGIONSERVER",
+        "HDFS_CLIENT",
+        "JOURNALNODE",
+        "KAFKA_BROKER",
+        "NAMENODE",
+        "NODEMANAGER",
+        "RESOURCEMANAGER",
+        "ZKFC",
+        "ZOOKEEPER_SERVER"
+      ],
+      "fqdn": "node2.alpha.example.internal",
+      "host": "192.0.2.12"
+    },
+    "node3": {
+      "components": [
+        "DATANODE",
+        "HBASE_REGIONSERVER",
+        "HISTORYSERVER",
+        "JOURNALNODE",
+        "MYSQL_SERVER",
+        "NODEMANAGER",
+        "SPARK2_JOBHISTORYSERVER",
+        "SPARK2_THRIFTSERVER",
+        "ZOOKEEPER_SERVER"
+      ],
+      "fqdn": "node3.alpha.example.internal",
+      "host": "192.0.2.13"
+    }
+  },
+  "platform": "alpha",
+  "port_keys_unmapped": [],
+  "schema_version": 3,
+  "services": [
+    {
+      "components": {
+        "HBASE_MASTER": [
+          "node1"
+        ],
+        "HBASE_REGIONSERVER": [
+          "node2",
+          "node3"
+        ]
+      },
+      "native_service": "HBASE",
+      "service": "hbase"
+    },
+    {
+      "components": {
+        "HDFS_CLIENT": [
+          "node1",
+          "node2"
+        ],
+        "JOURNALNODE": [
+          "node2",
+          "node3"
+        ],
+        "NAMENODE": [
+          "node1",
+          "node2"
+        ],
+        "ZKFC": [
+          "node1",
+          "node2"
+        ]
+      },
+      "native_service": "HDFS",
+      "service": "hdfs"
+    },
+    {
+      "components": {
+        "HIVE_CLIENT": [
+          "node1"
+        ],
+        "HIVE_METASTORE": [
+          "node1"
+        ],
+        "HIVE_SERVER": [
+          "node1"
+        ]
+      },
+      "native_service": "HIVE",
+      "service": "hive"
+    },
+    {
+      "components": {
+        "KAFKA_BROKER": [
+          "node2"
+        ]
+      },
+      "native_service": "KAFKA",
+      "service": "kafka"
+    },
+    {
+      "components": {
+        "HISTORYSERVER": [
+          "node3"
+        ]
+      },
+      "native_service": "MAPREDUCE2",
+      "service": "mapreduce"
+    },
+    {
+      "components": {
+        "MYSQL_SERVER": [
+          "node3"
+        ]
+      },
+      "native_service": "MYSQL",
+      "service": "mysql"
+    },
+    {
+      "components": {
+        "SPARK2_JOBHISTORYSERVER": [
+          "node3"
+        ],
+        "SPARK2_THRIFTSERVER": [
+          "node3"
+        ]
+      },
+      "native_service": "SPARK2",
+      "service": "spark"
+    },
+    {
+      "components": {
+        "NODEMANAGER": [
+          "node2",
+          "node3"
+        ],
+        "RESOURCEMANAGER": [
+          "node1",
+          "node2"
+        ],
+        "YARN_CLIENT": [
+          "node1"
+        ]
+      },
+      "native_service": "YARN",
+      "service": "yarn"
+    },
+    {
+      "components": {
+        "ZOOKEEPER_SERVER": [
+          "node1",
+          "node2",
+          "node3"
+        ]
+      },
+      "native_service": "ZOOKEEPER",
+      "service": "zookeeper"
+    }
+  ],
+  "source_system": "manual",
+  "stack": "example-1.0",
+  "stack_dependencies": [
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "YARN",
+        "native_target": "HDFS",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://alpha/stack/YARN/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "yarn",
+      "target_service": "hdfs"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "MAPREDUCE2",
+        "native_target": "YARN",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://alpha/stack/MAPREDUCE2/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "mapreduce",
+      "target_service": "yarn"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "HIVE",
+        "native_target": "HDFS",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://alpha/stack/HIVE/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "hive",
+      "target_service": "hdfs"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "HIVE",
+        "native_target": "YARN",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://alpha/stack/HIVE/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "hive",
+      "target_service": "yarn"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "HBASE",
+        "native_target": "HDFS",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://alpha/stack/HBASE/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "hbase",
+      "target_service": "hdfs"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "HBASE",
+        "native_target": "ZOOKEEPER",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://alpha/stack/HBASE/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "hbase",
+      "target_service": "zookeeper"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "KAFKA",
+        "native_target": "ZOOKEEPER",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://alpha/stack/KAFKA/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "kafka",
+      "target_service": "zookeeper"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "SPARK2",
+        "native_target": "HDFS",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://alpha/stack/SPARK2/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "spark",
+      "target_service": "hdfs"
+    },
+    {
+      "properties": {
+        "confidence": "high",
+        "native_service": "SPARK2",
+        "native_target": "YARN",
+        "purpose": "栈声明依赖"
+      },
+      "provenance": [
+        {
+          "collected_at": "2026-01-01T00:00:00+00:00",
+          "kind": "snapshot_stack",
+          "path": "manual://alpha/stack/SPARK2/required_services"
+        }
+      ],
+      "relation": "depends_on",
+      "source_service": "spark",
+      "target_service": "yarn"
+    }
+  ],
+  "warnings": []
+}

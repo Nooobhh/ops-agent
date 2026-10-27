@@ -1,0 +1,13 @@
+* text=auto eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.cmd.template text eol=crlf
+*.png binary
+*.jpg binary
+packaging/windows/*.txt text eol=crlf
+packaging/windows/*.ps1 text eol=crlf

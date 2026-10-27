@@ -1,0 +1,4 @@
+Bastion login banner
+MOTD: maintenance window
+stty -echo -onlcr 2>/dev/null; export PS1=''
+@OPS:SETUP:0@

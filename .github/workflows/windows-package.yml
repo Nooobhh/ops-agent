@@ -1,0 +1,103 @@
+name: package
+
+# 发布产物:ubuntu 交叉构建(与 mac 同一路径)→ windows-latest 跑 Go/Python 入口单测与首装冒烟、ubuntu 跑 Linux tarball 冒烟
+# 发版前置门禁;签名与发布只在持有私钥的 mac 上做(scripts/release.py),CI 不碰私钥
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "desktop/**"
+      - "lib/apphost/**"
+      - "scripts/web_server.py"
+      - "scripts/opsagent.py"
+      - "scripts/build_package.py"
+      - "packaging/**"
+      - "requirements.txt"
+      - ".github/workflows/windows-package.yml"
+      # 本工作流在 Windows 上跑的入口单测,改了也要触发
+      - "tests/test_apphost_*.py"
+      - "tests/test_opsagent_cli.py"
+      - "tests/test_web_server_cli.py"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: desktop/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/frontend/package-lock.json
+      - name: Go 单测(mac/Linux 可跑的部分)与 Windows 目标 vet
+        working-directory: desktop
+        run: go test ./... && GOOS=windows GOARCH=amd64 go vet ./...
+      - name: 开发 venv(打包脚本据此钉依赖版本)
+        run: |
+          uv venv --python 3.14 .venv
+          uv pip install --python .venv/bin/python -r requirements.txt
+      - name: 构建全部产物(发布包只装程序与示例环境包,所有环境通用)
+        run: .venv/bin/python scripts/build_package.py --version 0.0.0-ci.${{ github.run_number }} --out-dir dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opsagent-packages
+          path: dist/*
+          retention-days: 7
+
+  smoke-windows:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: desktop/go.sum
+      - name: Windows 上跑 Go 单测(含真实进程树起停)
+        working-directory: desktop
+        run: go test ./...
+      - name: Windows 上跑中台入口单测
+        run: uv run --no-project --python 3.14 --with-requirements requirements.txt python -m pytest tests/test_apphost_controller.py tests/test_apphost_prepare.py tests/test_opsagent_cli.py tests/test_web_server_cli.py -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: opsagent-packages
+          path: dist
+      - name: 解压首装包
+        shell: pwsh
+        run: Expand-Archive (Get-ChildItem dist\OpsAgent-*-win-x64.zip | Where-Object Name -notlike 'OpsAgent-app-*' | Select-Object -First 1).FullName -DestinationPath C:\smoke
+      - name: 模型配置占位(让中台拉起 triage worker)、关闭采集
+        shell: pwsh
+        run: |
+          $ver = (Get-Content C:\smoke\OpsAgent\app\current -Raw).Trim()
+          New-Item -ItemType Directory -Force C:\smoke\OpsAgent\data\config, C:\smoke\OpsAgent\data\state | Out-Null
+          Copy-Item "C:\smoke\OpsAgent\app\$ver\config\model.example.yaml" C:\smoke\OpsAgent\data\config\model.local.yaml
+          Copy-Item packaging\acquisition-disabled.json C:\smoke\OpsAgent\data\state\acquisition-settings.json
+      - name: 首装冒烟
+        shell: pwsh
+        run: packaging\windows\smoke.ps1 -Root C:\smoke\OpsAgent
+
+  smoke-linux:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: opsagent-packages
+          path: dist
+      - name: 解压、拉起、探活、停止
+        run: |
+          tar -xzf dist/OpsAgent-*-linux-x64.tar.gz -C "$HOME"
+          mkdir -p "$HOME/opsagent/data/state"
+          cp packaging/acquisition-disabled.json "$HOME/opsagent/data/state/acquisition-settings.json"
+          "$HOME/opsagent/bin/opsagent" version
+          "$HOME/opsagent/bin/opsagent" start
+          curl -fsS http://127.0.0.1:8420/api/health
+          "$HOME/opsagent/bin/opsagent" stop
+          test "$("$HOME/opsagent/bin/opsagent" status | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')" = stopped

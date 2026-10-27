@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "alerts": {"enabled": false},
+  "resources": {"enabled": false},
+  "maintenance": {"enabled": false}
+}

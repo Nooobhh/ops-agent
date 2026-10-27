@@ -1,0 +1,431 @@
+# ops-agent
+
+> 通用 OPS 中台:知识库路由 + playbook 脚本优先 + LLM 按需介入;环境专有内容装进环境包。
+
+## 项目类型
+
+- 类型:发行产品(开源核心,Apache-2.0),SemVer + CHANGELOG
+- 版本:1.0.0
+- 状态:active
+- 后续路线见 ROADMAP;0.x 为内部版本,历史存档随私有环境包
+
+## 命令
+
+**测试与校验**
+- 测试:`.venv/bin/python -m pytest`;前端:`cd web/frontend && npm ci && npm run build && npm test`(部署前必做,产物不入库)
+- 知识库 lint:`.venv/bin/python -m lib.kb`(知识库根按 `config/paths.local.yaml` 解析;pre-commit 自动跑)
+- 排查记录 lint:`.venv/bin/python -m lib.record lint <记录根>/troubleshoot`(records 仓 pre-commit 自动跑)
+- Agent 回放评估:`scripts/eval_agent_replay.py run --cases smoke|all [--baseline <report.json>]`(先 build-cases、prepare;产物在 build/agent-replay/)
+- 命令闸回放:`scripts/command_guard_replay.py <transcript.jsonl>... [--details]`(离线,统计三档判定分布)
+- 新运行时回放:`scripts/runtime_replay.py <A1 transcript.jsonl>... [--mode whitelist|auto|bypass]`(零成本)
+- 评估实跑:`scripts/run_a3_eval.py --case <id> [--model-config <yaml>] --live`(连生产只读并耗额度,产物 build/a3/)
+- SSH 冒烟(手动):`.venv/bin/python tests/smoke_ssh.py --node <node>`
+
+**运行时入口**
+- 起中台(常驻,手动启动):`.venv/bin/python scripts/web_server.py [--port 8420] [--state-dir state]`,内嵌 scheduler 与 triage worker 随之启动
+- 应用形态入口:`scripts/opsagent.py serve|start|stop|status|prepare|kb|run|version|upgrade`(Linux CLI;Windows 外壳经它 prepare)
+- 排查 worker 单次:`.venv/bin/python scripts/triage_worker.py --once`(常驻由中台守护)
+- 告警/资源 tick 预演:`scripts/alert_poll.py --dry-run`、`scripts/resource_collect.py --dry-run`(常态由中台 scheduler 调度)
+- 节点凭据初始化:`.venv/bin/python scripts/node_credentials.py`(经环境包提供方只补缺失缓存,`--replace-existing` 才显式替换)
+
+**人工排查**(脚本 stdout 纯 JSON,用法见 skills)
+- 症状/告警召回:`scripts/triage_match.py --query "<症状>" --platform <p>`(或 `--alert <告警名>`),读 kb-recall 排 Top 5
+- 会话:`ts_session.py` 建 → `ts_playbook.py`/`ts_exec.py` 采证 → `ts_conclude.py` 收口;事后补录用 `ts_backfill.py`(bf- 前缀)
+- 工作日志补录:`scripts/worklog_add.py --title ... --status DONE --category OPS [--process ...] [--work-item wi-…]`(log-work skill 唯一写入口)
+- 可挂工作项(只读):`scripts/work_items.py list [--date YYYY-MM-DD]`
+- 分组库任务固定必读:`scripts/group_docs.py -p <pid> -t <tid>`(通用 → 类型通用 → 特化;库与图谱见环境包 `knowledge.assembly`)
+- 图谱任务数据依赖:`scripts/graph_deps.py -p <pid> [-t <tid>]`(读写的表、同表上下游、流程依赖)
+- 多节点只读取数:`scripts/kquery.py --platform <p> --nodes n1,n2 --cmd ...`(可 `--run-id` 落档)
+- 单次巡检(仅人工,无定时任务):`scripts/patrol_runner.py --playbook <path> --run-id auto`
+
+**知识库与构建**
+- 发布产物:`scripts/build_package.py [--target windows|linux] [--version <预发布号>]`(需 go/uv/npm;产物 `build/release/<版本>/`)
+- 发版:`scripts/release.py --repo <发布仓> [--version <预发布号> --notes ...] [--dry-run]`(本机私钥签名;建仓/发版先问维护者)
+- 外壳:`cd desktop && go test ./... && GOOS=windows go vet ./...`;实机验收 `packaging/windows/e2e/remote.sh <主机> <安装根> <动作>`
+- 资源清单(调试):`scripts/inventory.py show [--cluster <p>] | resolve <别名> | export`
+- 专有名词/敏感信息扫描:`scripts/noun_lint.py [--details] [--json] [--check] [--staged]`(`--check` 有命中退出 1)
+- 重建派生物:`.venv/bin/python scripts/build_wiki.py`(`_index.md` 受控区 + routing/wiki/recall/retrieval/向量增量,统一 writer 与 pre-commit 共用)
+- 检索评估:`.venv/bin/python scripts/eval_kb_recall.py`(含线上 `prod_recall_top5`/`prod_context_required`,报告进 `build/kb-recall-eval.md`)
+- 导入/更新文档:`scripts/kb_import.py --source <文档> --manifest <JSON>`;不在约定路径的存量文档更新加 `--target <文档ID>`
+- 知识库 1.0 迁移:`scripts/migrate_kb_v1.py --knowledge-root <根> [--apply]`(缺省 dry-run,只改 frontmatter,幂等)
+- 人工晋升:`.venv/bin/python -m lib.kb promote <doc> --reason "<理由>" [--run-id <id>]`
+- 历史记录迁移:`scripts/migrate_records_v2.py --records-root <记录根>/troubleshoot`(只补 schema/重渲染 report,不改结论)
+
+**采集与维护**
+- 图谱:`scripts/collect_graph.py --graph <id> --mode full|incremental`(采集器由环境包 `extensions.graphs` 声明)
+- 告警维护:`scripts/rebuild_timeline.py`(从 jsonl 重建 timeline.db);去重规则初稿由环境包脚本生成,人工确认后入环境包
+- 完整命令与参数见 README「常用命令」
+
+## 架构约束
+
+- 到集群的**命令**唯一出口是 `lib/ssh_pool.py` 的 `SSHPool.run()/push()`,红线过滤在这一层,禁止旁路
+- 诊断另有 `transport: http` 通道(REST 只读查询),由中台本地直连不经节点、不过红线;替代闸门是 URL 只由 platform yaml 已登记 endpoint + cluster 拼装、参数全封闭枚举,模型够不着 URL/主机/凭证
+- MySQL 一律经 MySQL 插件:中台无直连与 mysql 诊断通道,Agent shell 里的 mysql/mariadb 客户端由命令闸拒绝
+- 扩展告警源的 HTTP 一律用上下文给的 `http_get`(`lib/persistent_http.py` 按 origin 的进程级连接池:`trust_env=False`,GET 建连 3s/重试 2 次)
+- 插件 = MCP 服务(`lib/plugins/`):官方由环境包 `plugins:` 声明,自定义在插件页添加;核心不出现具体插件名
+- 插件本机配置(地址覆盖/开关/自定义)存 `<数据根>/config/plugins.local.yaml`,只经 `PluginRegistry` 加锁原子写
+- 插件凭据只在插件页填,存 auth-profiles.json 的 `plugin:<id>`,不进账号页清单、不复用账号页 profile;API 只回是否配置
+- 认证 `connections`:插件页逐条编辑连接(密码只写不回显,账号密码留空沿用原值),调用时 base64url JSON 进环境包声明的请求头
+- 官方工具默认开关 = manifest `agent_default` 为真且不在 `default_disabled`;feeds 后台采集不受工具开关影响
+- 工具清单缓存 `state/plugin-catalog.json` 只由连接测试写;读写判定以 manifest 为准,无 manifest 只认 `readOnlyHint=true`
+- 插件工具准入:插件启用∧工具启用∧只读∧schema 合规;写工具一律不暴露,写操作只经环境包声明的计划工具(见下)
+- 两阶段写:官方插件在环境包 `write:` 声明 plan/execute/track/reconcile/impact,核心只认角色;第三方插件无写能力
+- plan 工具进快照须插件页启用∧已配审批密钥∧人工任务;调用即提出写操作,正常计划挂 kind=operation 审批,失败/noop 回模型
+- execute 永不进快照,只经 `ActionGateway.execute_plugin_operation`:执行前复核插件页与密钥再签令牌,令牌只在该方法内存在
+- 审批密钥存 auth-profiles.json 的 `plugin-approval:<id>`,与插件 approval.secret 同串;API 只回是否配置,不进模型/records/事件
+- 写操作状态只在事件流(executing 写前日志→executed→submitted→progress→finished);重入先按 plan_id 对账再重发,不重复下发
+- 批准时计划过期或插件报 PLAN_EXPIRED:原参数重新预检出新卡片,连续失效 2 次即停;不执行没给人看过的 plan_hash
+- 已下发写操作进 `waiting_operation`:worker 空闲时轮询 track,终态或超时转 queued 由运行时收尾;期间不可取消、不可改控制项
+- 写操作批准须带审批人(路由取 RequestContext.user 写 `approval_decided.decided_by`);插件拒绝类结论记 not_executed
+- 写操作结案(有 approved 步骤)由 Harness 写 oplog 草稿并入 session.oplogs;收口前重试,仍失败由 finish 的 oplog 闸挡住
+- shell 批准执行只有红线写命令记 approved 步骤并落写操作记录与 oplog;批准的未登记只读、凭据读取不算写
+- session.json 可选键 `write_operations` 只经 `TroubleshootSession.record_write_operation`,报告按键存在追加「写操作」一节
+- 第三方插件:工具默认停用,启用时钉内容哈希(描述/参数变了自动失效),描述清洗限 300 字,结果标 `untrusted`
+- 插件工具名 `mcp__<插件id>__<工具>`,首次执行冻结进 `task.plugin_tools`,任务内不变;插件页改开关只影响新任务
+- 插件绑定集群须等于任务集群(未定先 set_task_context);每次调用计入 diagnostic_calls
+- 全局插件(环境包 `scope`)不绑集群:scope.tools 里的工具由 Harness 补上/校验本集群标签过滤,其余工具标环境级参考
+- 插件 `feeds`(alerts/resources/schedule)供后台采集,只认环境包声明的角色、不看插件页开关;失败(含 UPSTREAM_UNAVAILABLE)显式报错,不当空结果
+- 插件调用唯一入口 `ActionGateway.run_plugin_tool`:先按插件页复核停用/内容变更/缺凭据(拒且不落步骤),结果逐键 redact 后落步骤
+- MCP 客户端是自写薄客户端(mcp SDK 要求的 starlette 与 fastapi 0.115 冲突):每次调用短会话、trust_env=False、只重试建连
+- 插件不可用/认证失败返回显式 `PLUGIN_*` 错误并落失败步骤,开场说明写明不可用插件;不得静默回退或返回空结果
+- 诊断不持有任何上游账号(定义带 `auth` 即拒收);管理面查询只经对应插件,中台不带管理面账号诊断
+- 红线管命令输入,`lib/sanitize.py` 管命令输出:stdout 落 records/回显前必经 redact_secrets 打码,新增落档路径不得绕过
+- 插件/管理面给的结构化配置交模型前须在 json.dumps 前逐值 `redact_config_value`(上游只给部分掩码,不可依赖)
+- Agent 可见阶段总结同属 records 输出,`TroubleshootSession.record_turn_summary` 必须经模块级 `redact_secrets` 后才能写 session/report,不得依赖其他方法的局部导入
+- playbook 一律只读,入库过 `lib/playbook_lint.py`;新增 step 形态必须同步 lint 正则,否则该形态绕过只读扫描
+- 组件可能不在本节点的检查用 `step_opt <name> <cmd> <expect> <组件名>`,按 `OPSAGENT_COMPONENTS`(runner 从 platform yaml 注入)判定;清单缺失时退回严格判定
+- 跳板(工作机)只进 `config/local-dev.yaml`(gitignore),代码零跳板硬编码
+- 凭证零入库:`config/credentials.json` gitignore
+- 知识库文档必须过 `.venv/bin/python -m lib.kb` lint 才能入库(pre-commit hook 自动跑)
+- 有效红线 = 核心 `lib/data/filter_rules.yaml` + 环境包 `policy/redlines.yaml`(只许收紧,经 `CmdFilter.default()` 合并)
+- 有效红线与默认库 `cluster/shared/procedures/redlines.md` 双向锁:sha256 取两文件依次拼接,改任一处须同步另一处
+- 知识检索各消费者各读各的派生物:精确告警 routing 读 `build/routing.json`,人工症状召回读 `build/kb-recall.sqlite`
+- ContextPack 检索读 `build/kb-retrieval.sqlite`,可选向量召回读 `kb-vectors.sqlite`/Milvus;均由 frontmatter 经统一 rebuild 生成,运行时不扫文档
+- 向量随 rebuild 按「段内容哈希+配置模型名」增量同步(`vector_sync`);失败只告警保留旧索引,不得回滚知识写入;Milvus 仅 `--full`
+- ContextPack、playbook、report 和 runtime evidence 必须带 provenance,不能只靠 Prompt 文字区分可信度
+- 新运行时提示词只在 `lib/agent_runtime/messages.py`(基础+类型片段+环境事实),任务内前缀逐字节稳定;旧任务的 Agent/Prompt 快照字段只读保留
+- 任务快照固化模型、思考强度与 harness_switches;改提示词要考虑已有任务前缀缓存与续查一致性
+- 新运行时工具清单真源 `lib/agent_runtime/tools.py`;准入由命令闸与各工具参数校验负责,`tool_registry.py` 只供 envelope 元数据
+- 工具结果统一写 `ToolResult` envelope,模型历史只拿有界 `model_result` projection;非命令类工具须保留有界 data,不得投影成空
+- 旧平面字段与完整 AuditResult 仅作迁移/审计投影,不得破坏现有恢复/幂等语义
+- 工具批次按 `failure_scope` 顺序执行:已执行命令的非零退出码不等于 Harness 拒绝;独立只读调用可继续,依赖调用标 skipped
+- 硬失败/审批/预算/传输故障停止同批后续调用;每批事件记录 `batch_id/batch_index`,三次根因拒绝记录 `tool_rejection_chain`
+- `ToolResult` 必须区分 `execution_state`、`command_status`、`skip`、`dependency` 与阶段 `timing`
+- 运维 Agent 的自主性分工锁定为「模型负责规划、顺序和证据推理；Harness 负责能力边界、操作安全、审批、状态恢复和审计」。模型能力增强可以减少 Prompt 中的流程指导，但不得削弱 SSHPool、cmd_filter、证据闸、oplog 和 records 落档
+- 路由文档 diagnostic_paths 可带 `task_types`:Harness 用告警 taskId 经任务拓扑识别类型,只在路由内选路径(类型→通用),识别不出按 order 全跑
+- 路径选择记入 `agent_playbook_result.path_selection`;task_id 只做路由内选择,不参与路由
+- 类型 playbook 本机查无失败返回 insufficient 不得 conclusive,否则告警流程会在此误停
+- ContextPack 只是检索参考不是实时证据;evidence_refs 只能来自当前任务的诊断、受控命令或 playbook 结果,知识文档与模型推断不得进入
+- 历史上下文可压缩,完整证据留在 records,经 `read_task_evidence` 按当前 Task 的 ref 读取
+- skipped/rejected 调用不进 runtime evidence;读取 skipped ref 返回 `EVIDENCE_NOT_EXECUTED` 且不重复计入拒绝链
+- 任务进入 completed/failed/kb_failed/cancelled 前,TaskStore 必须 reconcile 全部未完成 invocation 并清空 pending 引用
+- 资源风险卡片经 `POST /api/resource-risks/{risk_ref}/triage-task` 创建固定为 investigation 的任务,后端从风险状态生成并校验 `RiskSeed`
+- Agent 只能经受限 `read_resource_risk` 按风险引用、平台、节点和有限窗口读现状/样本,禁止读任意路径或把完整历史塞进 ContextPack
+- 节点级 ContextPack 仅保留入口节点、Top-K 相关 topology path 和有限 warning;完整资源快照留在本地 state/records,不进 ContextPack
+- RiskSeed 的 service/component 必须进入 `RetrievalRequest`,否则不得按整个平台回退检索
+- MySQL 风险用登记的 `mysql.error_log_files` 定位 `/var/lib/mysql/*.err`,禁止靠泛化 `/var/log` 搜索猜路径
+- Agent 正常结束当前 Loop 后回到 `waiting_input`，用户点击完成才进入 `completed`；KB、worklog、artifact 和报告操作不得重新分类任务
+- 本地 embedding/Cross-Encoder 模型按进程缓存复用,RetrievalService 可每次新建但不得重复加载模型
+- ContextPack 检索默认关闭 Cross-Encoder;仅 investigation/artifact 及标准告警失败后的 investigation fallback 在设置开启后对硬过滤后的有限候选重排,模型失败必须回退原排序并记录 `retrieval_meta`
+- skills 只从 knowledge frontmatter.playbook 取路径给 runner;不接受用户输入的 playbook 路径
+- WRITE 命令必留 oplog:finalize 无 oplogs 引用抛 OplogMissing(代码闸),record lint 联动校验
+- records/ 的 session.json/report.md 只能由 lib.record 产出,外部工具产物进 `<run_id>/artifacts/`;仅含 artifacts 的调查暂存目录不视为 run,正式 run 仍由 record lint 校验
+- PTY(堡垒机)与 exec 同为 SSHPool 内通道形态,按凭证 `pty` 标志分派;红线过滤仍在 run() 唯一入口;断链抛 `PtyChannelDead`(retryable 分发送前/已发送),push 侧转 `PushChannelFailed` 且明令不重试
+- PTY 会话须在 setup 哨兵前关 history(`unset HISTFILE` + `command set +o history`),命令与 push 内容不得落目标机;`command` 前缀防 dash/zsh 报错中止整行
+- platform yaml endpoints 条目必带 source/collected_at 溯源,`source: manual` 条目采集器不覆盖;顶层 `cluster_name` 亦人工维护
+- endpoint 注入只认显式 `url`,仅有 host/port 的条目视为不可用并显式失败
+- skill 层零内嵌代码:LLM 只敲 `scripts/` 固定命令读 JSON;新增动作先加脚本再进 SKILL.md
+- http 类诊断不过 SSHPool 闸(替代闸门见上文);知识内容另由 `read_kb_chunks` 按 ContextPack 引用有界读取
+- `bypass` 只跳过普通档位裁决,SSHPool、cmd_filter、红线和凭据/写操作人工闸仍不可绕过
+- `tools.py` 只剩知识草稿与任务产物两项契约(新运行时复用);结果 envelope 真源 `tool_results.py`
+- 完整 metadata description 供 Harness/UI;模型只收紧凑 Purpose/Input/Safety/Output/Failure 投影;diagnostic catalog 有界且不注入渲染命令
+- `GET /api/triage-tools` 只返回脱敏的模型可见 catalog
+- 命令档位由 `state/command-policy.json` 的 mode 定(默认 whitelist),只作用于命令闸判为未登记的段
+- auto reviewer 只接收静态规则落到 `review` 的命令,静态 `allow`/`deny`/`ask` 不送模型
+- 审核模型明确返回 `safe=true` 才放行;`safe=false`、未配置、超时或解析失败均转人工,自动任务无人工通道时驳回
+- 纯计算/解析/打印的解释器命令可判安全;写文件、删除/修改、子进程与网络连接按不安全处理
+- 档位可按任务覆盖(`task.command_mode`,空=跟随全局)且下一轮对话生效;**覆盖的是档位不是名单**,永久 allow/deny 始终取全局
+- 两类命令三档都绕不过:红线 FORBIDDEN(`bash -c`/shutdown 这类瓦解判定机制本身的)一律拒;红线 WRITE(rm/服务启停)与凭据路径(shadow/私钥/keytab)一律挂人工审核,**bypass 也不例外**
+- 命令审批通过即由 Harness 按签名校验直接执行挂起的原调用并带 `approved=True`,可覆盖 ask;永久名单不可——那是「以后都不问」。`command_grants` 已退役
+- bypass 放行未登记命令只靠信任:命令闸按明文判定,拼接混淆拦不住,这是 bypass 的固有属性不是缺口
+- logs.* 诊断的 log_dir 合法值 = `config/log-catalog.yaml` 登记绝对路径(平台各一套,清单缺失显式失败禁懒构建);db.* 为模板化只读查询,禁自由 SQL
+- 诊断参数的动态枚举源可插拔:`log_catalog`(采集器产物)与 `fs_roots`(`config/fs-roots.yaml` 人工维护的可列目录根白名单)取并集喂 `fs.list_dir`;源缺失显式失败禁空枚举
+- session 步骤 cmd 一律自述执行位置:ssh 类带 `[node]` 前缀,http 类带 `[local]` 并附 extract 路径以区分同 URL 的不同查询
+- 插件调用步骤 cmd 带 `[mcp:<插件id>] <工具> <参数>`,第三方插件为 `[mcp-3p:<插件id>]`
+- failed/completed 恢复与 stale running 接管前,须扫描 assistant_message 整批 tool_calls,为 pending 与未开始调用逐一补 tool_result
+- 模型消息重建按 assistant 声明顺序让结果紧跟该批调用;后写入的 user message 不得插进未闭合工具批次
+- Agent 底座在 `lib/triage_agent/` 的 approvals/invocations/tool_batch/budget_gate/command_approvals/history 等模块
+- 审批挂起一律经 `approvals.request_approval`,兑现经 `pending_approval` 取最近已裁决未闭合的请求;审批状态只在事件流
+- 无 tool_call 的续期审批兑现即记 `budget_decision_applied`,任务重入不得再兑现
+- A3.7 起只有新运行时;harness_tier 为空/structured 的旧任务只读:追加/重试/改控制项 409,排队即关(legacy_runtime_retired)
+- 新运行时 `lib/agent_runtime/` 执行全部新任务(人工与自动),新任务固化 harness_tier=autonomous;评估期 guided 快照按自主档运行
+- 新运行时类型只换提示片段与开场材料:qa 快照、investigation/artifact 引用清单与 RiskSeed、alert 预跑;材料失败不挡任务
+- 告警 playbook 选择与执行在 `alert_playbooks.py`:精确路由内按序每个最多一次,遇成立即停;不 handoff
+- 新运行时 finish 证据 ref 另认 `playbook:<n>.<k>`;分类冲突取程序判断(程序判 default 时取模型),模型判断留审计;产物任务不挂报告闸
+- 告警信封(各来源)带告警名:有精确路由程序即判 alert,无路由判 default
+- 新运行时自动任务:追问转收口回合,收口即落 worklog;命令审批与报告闸无人工通道,未放行即驳回、无依据记 insufficient
+- 新运行时消息:稳定 system 前缀 + 只追加历史;动态状态只以 harness_notice 追加,已发消息不改,时间取任务创建时间
+- 新运行时节点命令只经 `shell` → command_guard → decide → CommandApprovals;批准后按签名执行挂起的原调用
+- shell 首段整文件读取执行前探测大小,≥1GiB 拒并给截取建议;探测走 SSHPool 不落 records
+- finish 证据只给 ref+match,原文由 Harness 从 records 摘录;猜测三态(成立/缺少证据/推翻)只降不升,不驳回
+- 成立需窗口内异常观测+判据,推翻需两个不同命令的反证且一条在窗口内;人工任务结论无依据才挂 report_gate
+- 观测/反证时间取摘录行时间戳,摘录无时间戳(现状输出、配置)取该步骤 recorded_at
+- 软预算轮次 60/40 分钟/节点命令 150,人工任务先问续期;硬上限轮次 80/60 分钟/节点命令 200/输入 600 万 token,到顶或拒续期进收口回合
+- 收口回合只开放 finish;仍不收口则用已采步骤写未收口报告(insufficient),failure_kind=closing_round_unanswered
+- 新运行时报告经 `record_finish` 写,续查证据与建议只增不减;session 的 `finish` 键仅它写,渲染器按键存在追加内容
+- worker 用 lenient 模型客户端:非法工具参数回模型重试(连续 3 轮进收口回合)
+- 新运行时每次模型请求落 `model_usage`(含缓存命中);环境事实取环境包 `agent/facts.md` 与资源清单,核心不写环境名
+- 诊断参数分封闭枚举与受限开放型(integer 区间 / token / text);开放型强制 `shlex.quote`,位置实参靠 `--`、选项值靠 `pattern` 防选项注入(转义只防命令注入)
+- cmd_filter 中和只读工具引号参数的准入是白名单文法(裸词或单引号 token 组成的 `|` 管道),越出文法一律不中和——未建模构造默认落安全侧
+- 红线判命令替换按引号上下文:单引号内 `$(`/反引号经 `lib/shell_lex.py` 屏蔽;注释/行继续/heredoc/`$'…'`/alias 等歧义构造不屏蔽
+- 裸 shell 唯一入口为 `lib/command_guard.py`:红线→结构→逐段→凭据→未登记,多条结论取最严 deny>approval>unregistered>readonly
+- 命令闸未登记段走三档(default 转人工/auto 审核模型/bypass 放行);名单按段签名,只覆盖未登记段,覆盖不了写操作与凭据
+- `lib/triage_agent/` 是传输无关纯 Python 核心,禁止 import FastAPI/浏览器概念;路径一律由 AppPaths 注入,模型 key 只读 gitignore 的 config/model.local.yaml
+- 召回排序在 `recall._rank_documents`:字段加权 BM25 + 中文双字词,再乘平台作用域因子(本平台加权、未点名服务的 shared 文档降权)
+- 改召回/ContextPack 排序必跑 `scripts/eval_kb_recall.py`,两条线上路径的 dev 与 holdout 都不得回退,只看 dev 调参
+- ContextPack 必读按 final 分跨桶合并(各桶配额不变),低于最佳 0.5 倍不进必读,排在服务基线之前;无平台请求也走召回排序
+- Markdown 是知识唯一真源;recall/retrieval 两个 sqlite 只由统一 rebuild 原子生成、不入 Git,查询只用 `mode=ro`
+- 索引缺失/损坏/schema 不匹配必须显式失败并提示 build_wiki,禁止懒构建或回退无排序候选
+- 中台知识页服务树与正文直读 `knowledge/` 源文件(常驻进程读构建快照必然过期),仅全文检索走索引;索引缺失回 503、过期回 stale 标,禁静默空结果
+- 知识库 `display_title` 由后端统一生成,树/搜索/正文不得各自猜标题;合格 frontmatter title 优先,存量兼容正文 H1 与结构化保底标题
+- 标题契约不改检索排序(仍只读既有 FTS 字段);knowledge(含 baseline/topology/reference)不设 status,仅排查/流程/oplog 走 draft/verified
+- 分组库按 `task_type` 分组(kb.yaml `group_field/common_dir`);类型通用文档 problem 固定 `<类型>-general`
+- pid/tid 特化文档带 `process_id`/`task_id`,problem 以 `p<pid>[-t<tid>]-` 开头;lint 校验目录与字段一致
+- 分组固定组装 `resolve.common`→类型 general→pid/tid 特化,类型取图谱快照,前置于 required_reads;QA 只作参考
+- 库/图谱/语境权重由环境包 `knowledge.assembly` 声明,核心不写库名与服务名;未声明即不做分组组装
+- 分组组装仅在分组语境或 pid/tid 对命中图谱时触发,防 Spark task 等编号误判;运行时只读快照标签与 meta
+- 分组库类型目录文档在召回与 ContextPack 中,查询未点名类型时 ×0.85,让 common 方法论优先;两处规则须一致
+- 特化文档(p<pid>-)只认流程号:点名类型但流程号不符照样降权
+- 分组语境(点名 assembly.service 或命中 pid/tid):本库与 home_services 原权重,runtime_services ×runtime_weight,其余 ×other_weight
+- `read_task_dependencies`(qa/investigation)只读本地图谱,是参考非证据;并发须再经插件比对运行窗
+- 图谱 = 环境包 `extensions.graphs` 采集器产物,存 `state/graphs/<id>/`;核心只管存取/单飞执行/周期刷新/API,视图元数据随图下发
+- 旧状态目录按 `legacy_state_dir` 复制迁移(不搬,回退版仍可读);图谱超 7 天,group_docs/ContextPack 给 gap
+- 召回索引 schema 3 带 `kb_groups`(建索引时取 kb.yaml),运行时据此判分组,不读 kb.yaml
+- 运维 5 类只由 `lib/kb/categories.py` 按 type/profile 推导;知识页、检索标签与 ContextPack 引用共用,不得各自判断
+- 操作手册 `sop_kind` routine/change/deploy,缺省 routine 可不写;仅 procedure 可声明(contract 与 lint 双校验)
+- 人工浏览查询在 `lib/kb/browse.py`,与 agent 召回 `search_recall_index` 物理隔离:后者的 Top5 上限与平台必填是验收过的行为,浏览侧放宽不得改它
+- 知识页与引用关系 HTTP API 全程只读;文档写入只有中台排查内部 `KnowledgeSink` 与本地 `kb_import.py` 两个业务入口,二者必须共用 `KnowledgeWriter`
+- 草稿自动晋升不认路由命中或单纯查阅:仅 troubleshoot draft 的后续独立 conclusive run 可参与,并须历史案例回链、平台/服务一致和报告正文内容呼应;健康度展示与真实晋升共用 `lib.kb.promotion`
+- 服务概览只认库内 `platform/service/_index.md`(三段);更深的 `_index` 会顶掉真正的服务概览;flat 库以库根 `_index.md` 作概览
+- 未注册的 `/api/*` 必须原样 404,不得兜进 SPA index.html——否则前端比后端新时只报 `Unexpected token '<'`,藏住「进程没重启」这个真病因
+- `config/model.local.yaml` 支持多模型 profile、auto/manual/weekly 三套默认值与可选 reviewer 审核模型;设置 API 永不回传 API key
+- 任务创建/领取后固化 model_profile_id/model/reasoning_effort 快照;周报生成实时读取 weekly 默认值
+- 普通模型 transport 默认超时 120s;weekly 四阶段共用同一 weekly 模型与思考强度但每阶段独立超时 300s,阶段状态由周报后台任务接口提供
+- Agent 主循环仅对 `ModelTransientError`(超时/断连/429/502-504)重试 2 次(5/15s)并落 `model_retry`;耗尽按 `model_unavailable` 失败
+- 回放评估经 `build_worker` 注入点只换环境 I/O、知识写入与模型 transport,缺省即生产组装;迁移改动这些接缝须同步 `lib/agent_replay`
+- 回放网关不接插件(快照恒空、调用拒绝联网),回放结果不依赖本机插件配置
+- 设置路由的一级入口必须指向该组默认子页：资源默认进入资源告警，告警默认进入告警规则；同组的采集、维护和配置子页只能通过对应左侧栏进入，不得再通过动态页面标题表达当前侧栏。
+- 排查任务运行时真源为 `state/triage-tasks/<task-id>/`(task.json + messages.jsonl + invocations.json),FileLock+原子替换;已完成 invocation 重启后不得重放
+- 文件原子写统一用 `lib/atomic_file.py`(同目录临时文件+fsync+replace),新模块不得再自写一份
+- manual failed/kb_failed/completed 任务允许追加消息回到 queued(retry 仍限失败态);恢复前必须闭合历史 pending invocation,cancelled/auto 保持只读
+- completed 续查复用同一 run_id,收口走 `amend_report` 增量合并:服务端以旧报告为基线,只收新增与显式取代,不收整份 evidence 替换(旧证据丢不掉是结构性质)
+- 无 `tool_call` 的 worklog 审批以「审批决定之后到 `completed`」作为一次性消费边界;完成任务追加消息不得重复消费历史审批
+- 续查模式判定为「事件流存在 completed/failed/kb_failed 边界且其后有用户消息」,**不是收口计数**;`waiting_input` 是本轮暂停不算边界
+- 自动任务与旧版人工任务沿用 report+worklog+kb 收口闸;自动告警任务保持自动收口
+- 新版 Web 人工任务(`manual_artifacts=true`)不由模型自动 completed:每轮停 waiting_input,仅用户空闲态点完成,completed 后追加消息自动重排队
+- 服务器动作首次发生即自动创建并持续刷新执行 report;知识草稿与 worklog 由右侧入口显式触发
+- 新 troubleshoot/procedure/oplog 文档固定 draft 且不自动 git commit;knowledge(含 baseline/topology/reference)不设 draft
+- Agent-Ops 任务产物仅允许 `.md/.sh/.py`,固定写 `records/troubleshoot/<run_id>/artifacts/`,同名自动 `-v2/-v3`;脚本只生成不执行且拒绝服务控制/删除/配置变更类内容;Web 只读预览和下载
+- TriageTask 仍是单 `platform/node/scope` 上下文;实时目标 = 环境包声明的全部集群(旧短键),任务详情派生 `target_ref`
+- 节点 key/IP/别名/FQDN(忽略 `:端口`)动作前经 `Inventory.resolve_host` 归一到登记 node;不得把多个实时平台混进一个 report,多平台见 ROADMAP
+- 粘贴告警认 Alertmanager 与中台通知两种格式(资源类通知不算告警);分类前用告警主机推断平台,无路由告警走 DefaultAgent
+- manual 调查/告警/实时 QA 缺平台/服务/节点时由 service 发 `task_context` 澄清后才入 Agent;Agent `needs_input` 回合退还工具轮次
+- 人工排查已查阅知识文档记 `consulted_docs`(仅成功读取,去重保序),中台取该字段与事件流派生的并集以兼容旧任务
+- 新版 Web manual 任务 create_kb_draft 先渲染完整草稿并附证据校验意见,人工同意即写入,即使证据不完整
+- 人工同意的草稿仍须过 schema/kb-lint/红线/原子 writer,状态只用 draft/verified
+- 旧任务保留两段式 kb_proposal→kb_draft 恢复兼容;改既有文档带 unified diff,append_case 须使用修改后的 proposal 内容
+- 知识库正文不铺原始命令输出，案例以 `[[report:<run_id>|查看完整排查报告]]` 回链到 report；知识库页和报告页均只读，报告接口限定 records/troubleshoot
+- kb 审批决策 approve/revise/reject 由 `_consume_kb_decision` 兑现成该 tool_call 唯一 tool_result;挂起期间禁写 tool_result,否则回放消息序列重复
+- 未登记/不适用本平台的诊断 ID 驳回带本平台相近候选与 `DIAGNOSTIC_NOT_REGISTERED`,不计入连续驳回,由工具轮次预算兜底
+- CLI `ts_conclude` 禁止 `kb_doc`/`kb_draft`/`kb_doc_effective`,只负责 records/report
+- 中台 append_case 后由 `lib.kb.promotion` 判定并经 `promote_auto` 晋升;人工晋升经 `promote_manual`
+- 新文档写 schema v3(= v2 + platform 写资源引用);v2 起必带 source/source_ref/summary 与 layer/profile/entrypoints/confidence
+- v2 起正文 H1 与 title 一致且按 profile 固定章节;v3 的 platform 写短键由 lint 拦,v1/v2 照旧规则读
+- 旧文档无 schema_version 时按 legacy 兼容,不得作为新写入格式
+- baseline 采集器只向 `state/kb-import/` 输出材料,禁止 `--out-dir` 位于 knowledge/
+- rebuild 自动创建缺失的服务级与组件级 `_index.md`;已有 index 仅替换 `GENERATED:KB-INDEX` 区域,人工章节必须保留
+- 服务概览的节点、端口与服务依赖只由生成区渲染;人工区禁「节点」「端口」列与依赖小节(lint 拦),时点数据标「历史快照」
+- 生成区输入须入库:环境包登记的主机清单、拓扑快照与 `manual-dependencies.yaml`,换机重建结果一致
+- 集群拓扑快照 v3(环境包采集器产出,字段去产品名、带 `source_system`)含栈依赖、组件依赖与端口;端口只认登记,快照不落配置原值
+- 组件→服务映射、endpoint 提示与服务别名在环境包 `config/component-services.yaml`,核心 kb/topology 只读它
+- 采集不到的服务依赖只登记 `config/topology/manual-dependencies.yaml`(写依据),拓扑与生成区都读它
+- investigation/artifact 检索沿服务 depends_on 向上游扩展 2/1 跳,路径记 `topology_context.dependency_paths`
+- 依赖扩展来的上游文档是弱拓扑信号:分数低于组件投影且须过查询词过滤,不得绕过内容相关性进入候选
+- 检索评估正式门禁 ≥40 例且 holdout ≥12;不足时报告标 preliminary,调排序/引入组件不得据此宣称达标
+- 知识仓 hook 拒绝未暂存的 index 变化
+- 告警管道(lib/alerts + alert_poll)零 LLM:定时路径零 SSH(`auto_triage_enabled` 默认 false,关闭时连 SSHPool 都不建),采证唯一入口 run_playbook,run_id `al-` 前缀,不 finalize 不晋升
+- 告警源:核心 Prometheus(经插件 feeds.alerts,全局一个)+ 环境包 `alert_sources` 扩展(按集群各一个,源 id `类型:集群`)
+- patrol 巡检源已废除,`patrol_runner.py` 仅供人工排查,不再有定时任务
+- 告警时间线:`records/alerts/*.jsonl` 是真源,`state/timeline.db` 为可重建派生索引;保留期从 acquisition settings 读取(默认 90 天),未闭合区间永久保留
+- 资源快照 `records/telemetry/resources/YYYY-MM-DD.jsonl` 当天只追加,跨日由维护任务校验后原子封存为 `.jsonl.gz`,默认保留 90 天
+- `state/resource-catalog.json` 为服务能力目录,`state/resource-risks.json` 为本地分析结果
+- 资源采集只经 Prometheus 插件 feeds.resources(快照/采集目标/具名查询),零 SSH/零 LLM;有主机采集目标的主机按 platform 标签动态发现平台
+- `excluded_platforms:[ai]` 同时作用于新采集、latest/summary API、风险 API 与历史分析
+- 插件字段→中台资源模型的映射(JVM、服务目录、业务具名查询)与默认阈值唯一真源为 `config/resource-metrics.yaml`(v2);手动阈值覆盖存 `state/resource-alert-settings.json`
+- 插件没给的资源字段在快照里缺失,业务具名查询插件未提供记 `source_error`;插件补齐后只改映射
+- 禁止从生产 rule 自动抄表达式或修改生产监控配置
+- 资源采集缺失值不得填 0:JMX 未配置、target down、source error、no data/stale 都进入 service catalog 并在 API/UI 保留显式状态；指标为空表示未知而非健康
+- 业务指标 `status` 只表示采集状态(ok/no_data/target_down/source_error),`severity` 只表示数值风险(healthy/warning/critical/unknown),禁止混用
+- 当前值达到 warning/critical 阈值必须同步进入资源风险发现
+- 资源风险持续时间只统计最近连续有效样本段,相邻样本间隔超 15 分钟即重置,断档不得推定为持续异常
+- JVM 高位风险以最近 3 个采集点中位数与趋势 ETA 判定,历史 P95 不得单独制造当前告警
+- 中央 Prometheus 受 512MiB size retention 限制只保留数小时,remote_write 到同机 VictoriaMetrics(1 个月);经插件查询时由插件按保留期自动转查 VM
+- 资源风险通知由采集设置 `risk_notifications_enabled` 显式开启(默认关),无基线时长硬锁;生产告警/recording rules 调整另立迭代,不得由中台写生产 Prometheus
+- 跨源去重(`config/alert-dedup.yaml`,match 写两个来源类型各自的选择器 + winner)只抑制推送不改时间线;`platform=unknown` 一律不参与去重——不同集群主机名可能重叠
+- 告警运行时落盘 gitignore:state/(状态机+锁)、records/alerts/(事件流 jsonl);config/alert-{profiles,sources}.yaml 入库可调
+- 节点凭据不按有效期自动刷新:只在登录初始化(补缺)与账号页手动生成(替换)时经提供方生成;SSHPool 认证失败不删除、不重生成,per-IP 锁(`host_lock`)保护写侧
+- 账号页凭据项由环境包 `credential_profiles` 声明(字段/校验/登录测试),节点凭据生成由 `node_credentials` 提供方实现;核心只做通用存取与展示
+- 账号页路由按请求向环境包取凭据扩展,扩展出错只让 `/api/credentials*` 报 500,不拖垮中台;密钥字段只写不回显
+- worklog 自动 emit:ts_conclude/patrol_runner/alerts triage_runner 三处收口静默 warn 不阻断;`records/worklog/YYYY-MM-DD.md` 事件键幂等
+- manual 任务 finalize 一律 emit_worklog=False;旧任务保持机械 worklog 审批闸
+- 新版 Web 任务由右侧显式触发模型增量概括 worklog,每批 1~3 条,可按意见重生成后确认追加;`task.worklog_cursor` 保证只消费新增事件
+- worklog 历史条目不回改;模型超时后保留反馈和 cutoff,重试不重新汇总旧历史
+- worklog 手动补录必须有日期/状态/类型/标题,产出/关联/过程可空;`- **周报**: 忽略` 是条目级可逆元数据,weekly-report 聚合必须在状态筛选和内容归纳前排除该条目
+- 周报周期按环境时区:默认值在环境包 `config/weekly-report.yaml`(缺省周四至下周三),设置页保存到本机 `weekly-report.local.yaml` 覆盖
+- 周报内容由 weekly 默认模型按 `skills/weekly-report/SKILL.md` 归纳,DOCX 仍由固定模板渲染
+- 周报环境部分在 weekly-report.yaml 的 `report` 段(文件名标题/模板/固定第 1 条/业务线),只读
+- 设置页写接口只写数据根,不写环境包目录(守卫 `tests/web/test_env_pack_readonly.py` 以只读环境包跑一遍)
+- 周报技能文件环境包 `skills/weekly-report/` 同名优先、缺了用核心通用版;核心不写客户名、人名与固定巡检文本
+- 周报生成必须走 weekly-report skill 四阶段 LLM 链路(事实聚合→初稿→规则审查→二次改写)
+- 周报代码只收集完整日志/关联报告/上一期待办/工作项事实、校验来源 ID 并写 DOCX,不得模板补句
+- 周报工作项事实(`lib/work_items/weekly.py`)只取本周完成/进行中/下期排期三桶并挂 worklog 来源 ID,其余未关闭项不进周报
+- 有工作项时各阶段输入加 `work_item_evidence`(`wi:<id>`)并加载 `references/WORK_ITEMS.md`;无工作项时模型输入须与旧链路逐字节一致(测试守)
+- 周报聚合须覆盖 `wi:` 来源;终稿 source_map 只能引用已知来源(worklog/`wi:`/`previous_todo#N`),固定巡检条除外,未知即失败
+- 中台报告与工具详情弹窗中的 Markdown、命令、参数和结果必须受容器宽度约束并自动换行,不得用横向滚动隐藏超宽内容
+- SSHPool `_transport` 3 次重试(0/2/5s)+ 分类错子类(SSHAuth/Network/Protocol Failed);认证失败保 cache 且不 refresh/delete,需设置页人工生成
+- PTY 开通道被服务端拒(如堡垒机会话上限)归 SSHNetworkFailed 并弃用该连接,下条命令重建
+- 直连建 TCP 统一经 `ssh_pool._open_socket` 带 10s 超时,不得把 (host, port) 元组直接交给 paramiko.Transport(其内部建连无超时)
+- channel 层重连独立于 transport 层:`dead` 纳入 closed/eof_received 故取用前即重建,重试仅限「复用通道+零字节已发送」且只吃剩余预算,per-node 5s 冷却成功即清、push 只清不设
+- records/ 目录规约扩展:worklog/(每日一个 md,append + FileLock 保护)+ weekly-reports/(周报 draft docx)
+- Web 路由层(`web/server/routes/`)近只读:禁 import SSHPool,禁写 timeline/jsonl、knowledge 及下列例外之外的 records 路径
+- 路由写例外:告警仅轮询总闸/通知渠道/规则级覆盖/来源推送开关;人工排查仅 `state/triage-tasks/` 且必须过 TriageTaskService
+- 路由写例外:模型设置仅经 ModelRegistry 写 `config/model.local.yaml`;worklog 仅经 `WorklogStore.append` 追加;本机用户仅经 `LocalUserDirectory` 写
+- 路由写例外:周报仅经 `lib.weekly_report.generate_docx` 原子生成/覆盖,显式确认后可删;排查报告接口只读且限定 `records/troubleshoot/`
+- 路由写例外:插件配置仅经 `PluginRegistry`,插件凭据仅经 `CredentialStore.save_plugin`/`save_plugin_connections`,工具缓存仅经 `CatalogStore`
+- 路由写例外:写操作审批密钥仅经 `CredentialStore.save_plugin_approval_secret`(只写不读回)
+- 路由写例外:工作项与计划仅经 `WorkItemStore`;Web 只建 manual/alert 来源,计划经粘贴导入,channel 只留给渠道适配器
+- 路由层主动外呼仅限:通知测试发送、账号页登录测试、插件健康探测与连接测试、工作项匹配建议的模型调用
+- 路由层另可写 `state/command-policy.json` 的 mode(全局档位),但 allow/deny 只读——加名单只经审批链路,不开写接口绕过裁决
+- 运行时控制项(平台/节点/模型/思考强度/档位)经 `PATCH /api/triage-tasks/{id}/runtime-controls` 原子部分更新,仅 manual;节点校验与 `set_task_context` 共用 known_nodes,拓扑不可读一律拒不得静默放行
+- 表单内 Radix Select 的受控值无对应选项时会经 onValueChange 回流空串;运行时控制只认非空且异于任务现值的选择(`runtimeControlsChanged`)
+- lib/scheduler.py 跨平台作为独立后台 tasks 内嵌在中台进程；alert/resource/maintenance 独立循环、独立失败状态、单 job 不重入。告警自动排查开启时仍可能间接调 SSHPool
+- 采集设置真源为 `state/acquisition-settings.json`(gitignore,FileLock+原子替换):告警/资源周期 60..3600s、保留期 1..3650d、路径分别配置且不得相同；相对存储路径一律按记录根解析(旧值 `records/` 前缀读时去掉),不得指向文件系统根
+- 通知渠道唯一真源 `state/notify-channels.json`(企微+飞书):web 写、alert_poll 读,写侧一律过 `lib/alerts/channels.py`(FileLock)
+- credentials.json 的 wecom 键已退役,alert-sources.yaml 无 notify 段
+- 规则级覆盖按 `<source_id>:<alertname>` 全链路生效:severity 覆盖在采集后重写事件,通知/展示/筛选一致;notify=false 只压推送不改时间线,中台带静音标
+- 告警定义目录 `state/alert-catalog.json` 由 alert_poll 非 dry-run tick 落盘(prometheus 复用 rules 响应、扩展源定义 60min TTL),web 只读零外呼；配置中已移除的来源会在下一轮目录刷新时清理
+- 告警规则页的基线分级以目录 profile 为底，若活跃快照或时间线已有同一 `(source, platform, alertname)` 的最新运行分类则同步展示该分类，并在值变化时保留 `baseline_class` 诊断字段；该同步只读，不改写告警目录。
+- 事件 `source_active_at`/`source_last_seen_at`/`source_resolved_at` 用于 event log ts、`_event_id_v1` 摘要和 dedup pair-distance 判定
+- 源端时间:Prometheus 取插件告警时段(1 分钟网格、real 视图,窗口起点取整分钟)与当前告警 active_at;扩展源由其实现给出
+- 按来源推送开关:默认值为 alert-sources.yaml 每源 `notify`(三源均关),本机切换存 `state/alert-source-notify.json`,只经 `lib.alerts.source_notify`
+- 来源关推送只是不推送(含该源的源异常通知):照常接收、记时间线、分级、去重与自动排查,条目不打静音标
+- 中台读 SQLite 一律 `mode=ro` URI 且捕获 `sqlite3.DatabaseError` 降级空结果,禁在读路径建表或写 DDL
+- 活跃告警读 `state/alerts.json`(字段全),历史读 `state/timeline.db`,按 key 分层合并;去重关系请求时实时重算,落盘的 `suppressed_by` 残缺不可作唯一依据
+- 概览「最近变化」读 timeline 事件流(`new`/`resolved`/`escalated`)按 key 折叠,不读活跃快照——读快照会让常驻告警靠 `last_seen` 刷新霸屏
+- 告警详情两张图由 `lib/alertCharts.ts` 在前端从详情已返回的全量事件流本地算,不开后端接口;出现次数只认 `type=new` 且取源端触发时间
+- 告警详情时间线以详情返回的 `occurrences` 为唯一生命周期口径,每行同时展示起止时间、活跃/已恢复状态和持续时长；不得再维护独立的重复持续时间列表,事件流只用于图表和辅助分类信息
+- 列表「首次出现」一律取本次出现区间起始:活跃取 timeline 开区间起始(缺 timeline 退 entry `first_seen`),历史取最后一条 `new`;两侧排序键必须同为该值,否则翻页漏数据
+- 中台「常驻」只由活跃快照 `first_seen` 时长派生(阈值 `--chronic-hours`),与 `alert-profiles.yaml` 的 `class=chronic` 人工名单零耦合,禁合并两者
+- 前端时区只取 `/api/env`(AppShell 取到才渲染页面),经 `lib/envTime.ts` 读;不得写死时区或固定偏移
+- 工作项页「今天/逾期」以接口回传的 `today`(环境时区)为准,前端不自算时区;周期分桶的逾期按 min(今天, 下期开始) 判,本期未过完不提前判
+- 从工作项发起任务:导航 state 的 `triageDraft.work_item` 带到 Composer,建任务时作 `work_item_id` 查询参数;任务本身不存工作项
+- Composer 提交后立即清空输入框；提交请求期间以及任务处于 `queued/running` 时，输入框和控件禁用、发送按钮统一显示转圈，等待 `waiting_input`、`waiting_approval` 或终态后恢复可操作
+- Agent-Ops 提交中的新建/追加消息必须先在对话区渲染一次用户消息；未收到任务详情前显示 Agent 运行中状态，收到事件后去重，不得回退到空白欢迎态。刷新当前任务使用 `RefreshCw`，失败任务重试使用 `RotateCcw`，重试按钮位于错误提示最右侧。
+- 前端任务主状态只归并展示 `Agent运行中` / `可以输入`；工具活动与命令列表按批次默认收起，已执行命令与未执行调用分开，具体调用详情通过主动点击打开。命令摘要和参数继续经过 secret redaction 与长度限制。
+- `waiting_operation` 前端归「Agent运行中」;写操作审批与执行进度是同一张卡,随 operation_* 事件更新,不展示令牌
+- 新运行时事件(开场/预算提醒/收口回合/未收口/档位变更)按紧邻标记事件投影为 notice 块;finish 结果投影为收口核验卡
+- 收口核验卡展示猜测三态、降级原因与 Harness 摘录原文;报告闸卡按提案形态区分新旧任务,旧任务展示不变
+- 资源页面固定为概览/节点资源/服务内存/业务指标四子 Tab;节点、服务、业务指标均可筛选排序并打开 24h/7d/30d 快照图表
+- 资源图表每个实际数值字段一张图(Load1/5/15 合并三线),图表组件须按需懒加载
+- 风险卡标题固定含平台/节点/服务或资源/指标,warning 黄、critical 红,点击后切到对应 Tab 并精确筛选
+- 首页资源概览置于告警概览之前并复用资源卡；顶栏数据源/告警/资源健康均用 `healthy/total + 红黄绿圆点` 的纯文字形态,告警与资源可点击弹详情但不得渲染成带边框背景的按钮块
+- 动态 flap 以完整 alert key(含节点)为判定单元,仅 baseline watch 非 maintenance 告警参与
+- flap 按 source active/resolved 时间计算短段:阈值内 class=flapping 且不排查、不发瞬时通知,持续超过阈值只升一次 watch
+- 告警元信息展示顺序固定为「常驻/波动/已静音」tag 在前、常驻持续时间 note 在后;首页与告警列表复用同一 renderer,不得再分别拼接
+- 概览今日新增/恢复及时间分布按 key 去重,分布桶取窗口内该 key 第一条 new;首页「常驻/活跃(非常驻)」卡使用时长派生 stats.chronic / stats.active_non_chronic,不得改用配置 class 计数
+- 每次 AlertsState.transition 都持久化 `last_tick_at`;轮询状态以该字段为准,仅兼容旧 state 时回退 timeline 最新事件,禁止用 timeline 事件时间直接代表成功 tick
+- 去重实时重算的输入须排除 `source_fail` 非空的源,与写侧 `observed_active` 口径对齐,否则会算出通知管道未做过的抑制
+- `event_id` 摘要输入永久锁定 v1 字段集(`_event_id_v1`),后续新增列一律不得进入摘要,否则老事件重投影会翻倍
+- 三源采集为拉模式事件流回放:sources 层按段(segment)输出 firing+ok 对,不按 key 收敛
+- per-source `state.last_tick_ms` 存 query end ms(不是最新 event ts),下 tick 从 last-60s(Prometheus 源 180s)overlap 续拉,靠 event_id 幂等去重
+- 首次升级新版本 alert_poll 落 `state.upgraded_at` iso;event log 生成时 event source_active_at < upgraded_at 且 key 在 pre-tick active → skip,不重投影老告警
+- dedup 按事件源端时间差(pair-distance)配对,不做 age filter;`dedup_window_seconds` 只从 `config.poll` 读默认 300,不入 state.json 持久化
+- 中台是本项目常驻进程(FileLock 单实例 + 默认 8420);跨平台内嵌 scheduler 统一接管采集,禁止再注册外部周期任务造成双跑；mac 下启动时经 `node_credentials.run` 仅初始化缺失的节点凭据。真正 24x7 仍要求宿主保证 Web 进程常驻
+- 部署形态:中台常驻内网办公机(macOS/Windows)并将开放多用户,中台侧代码须兼容两者;MCP 服务(含常驻采集与存储)将独立常驻内网服务器
+- 停中台统一写 `state/web_server.stop` 走 uvicorn 正常退出(Windows 无 SIGTERM);外壳/CLI 超时才强杀进程树防孤儿 worker
+- 外壳在 Windows 上用 python.exe + CREATE_NO_WINDOW 起中台(非 pythonw),worker 才继承隐藏控制台不弹黑窗
+- 安装布局:`app\<版本>\` 只读(git HEAD 代码+环境包+运行时,依赖钉 mac 开发 venv)、`data\` 即数据根、`shell\` 归外壳
+- 发布包只装程序:`envs/` 下只留示例包,不带知识库;环境数据与知识库是应用数据,`_verify` 见到即拒
+- 版本变化时外壳/CLI 先 `opsagent.py prepare` 重建索引再起中台;没有知识库时建空索引照常起
+- 外壳调 app 只经 `scripts/web_server.py` 与 `opsagent.py prepare`;改其参数须兼容新旧外壳与 app 混搭(更新/回退期间会有)
+- 更新只认 ed25519 签名的 manifest:公钥 `desktop/release.pub` 编进外壳,私钥只在发版 mac;版本须严格更新,资产逐个校验 sha256
+- 切换前快照 `data\state`(排日志/graphs/kb-import),新版 180s 不健康即回退并还原;state/records 格式须让上一版能读
+- 外壳 exe 不注入版本号、可复现构建:`desktop/` 不变则字节不变,manifest 的 shell_sha256 与本机不同才换外壳(交接不停中台)
+- 测试/验收实例一律关闭告警/资源/维护采集(`packaging/acquisition-disabled.json`)且不配通知渠道,免得与生产重复推送
+- `config/model.local.yaml` 存在时中台守护 triage worker 子进程;模型缺失时历史可读但禁新建,`/api/triage-health` 暴露安全状态
+- 轮询总闸 `effective` 仅表示已请求启用,不能代表实际运行;`/api/poll/status` 必须同时检查 scheduler task 与 `last_tick_at`,状态封闭集为 starting/running/stalled/stopped
+- 后端业务时间一律取环境包时区(`env_timezone()`,env.yaml 的 timezone),不读宿主时区;存储层继续存带时区 ISO8601
+- Web CLI 启动最前由 `lib/network_env.py` 清除大小写 HTTP/HTTPS/ALL proxy 并设 `NO_PROXY/no_proxy=*`,Web/scheduler/凭据提供方/worker 全部直连
+- 独立运行 alert_poll 时仍从 source/platform 配置提取 endpoint 主机合并 NO_PROXY
+- 仓库为 polyglot:前端 `web/frontend/`(React+Vite),`dist/` 与 node_modules 不入库,部署前须现场构建
+- **三仓边界**:主仓只装代码;知识库仓与 records 仓都在 ops-agent 外(`../knowledge`、`../records`),经 `paths.local.yaml` 定位
+- 运行时路径唯一入口 `lib/data_root.py`:state/records/build/knowledge 经 `resolve_data_root`(`OPS_AGENT_DATA_ROOT`,未设=仓库根),禁直接拼仓库根(守卫测试拦)
+- 记录根只经 `resolve_records_root`/`records_root_for`:`paths.local.yaml` 的 `records_root` → `<数据根>/records`;禁 `/ "records"` 拼接(守卫拦)
+- 记录根可在数据根之外:展示路径一律写 `records/<相对记录根>`;`TroubleshootSession.data_root` 供 oplog 校验找知识库根,勿再从目录向上推
+- 本机私有配置(model.local/credentials/auth-profiles/vector.local/paths.local/local-dev)一律经 `local_config_path` 落 `<数据根>/config/`
+- 拿不到仓库根的库函数/CLI 缺省用 `ambient_data_root()`:设了数据根落数据根,未设沿用 cwd 相对;入库配置始终读 `<repo>/config`
+- 工作记录/排查记录读写一律经 `lib.datastore`(WorklogStore/TroubleshootStore);禁直接拼 records 目录或调 `start_session`/`append_entry`(守卫拦)
+- 脚本不得在模块级解析数据层/记录根(守卫拦):配了绝对 records_root 后导入时就固定路径,测试的 chdir 隔离失效会写进真 records
+- 工作项与计划存 `<记录根>/work-items/<id>.json`(计划在 `plans/`),每项一文件、目录锁+原子替换、变更追加 history,只取消不删除
+- 挂载只存 task/troubleshoot/worklog 三种引用;报告、产物、审批、写操作经任务派生不另存;一个引用至多属一个工作项(409)
+- worklog 归属读时派生(`lib/work_items/links.py`):显式挂载优先,`auto:agent-ops:<task>`、`auto:troubleshoot|alert:<run>` 按任务/run 归属,不改 worklog
+- 计划导入按「节点+标题+类型」匹配已有事项,只更新开始/截止,不覆盖状态、不删项;导入时已完成的按截止日收口
+- Agent 不建、不改、不读工作项;从工作项发起的任务由路由建成后挂载(`POST /api/triage-tasks?work_item_id=`)
+- 匹配建议(`lib/work_items/suggest.py`)用周报默认模型,只返回建议,丢弃模型编造的引用;挂载只在人勾选后逐条走挂载接口
+- 记录作者取本机用户(`<数据根>/config/user.local.yaml`)或 Agent 任务的 `created_by`;无作者旧记录读时推断为数据根所有者,不回写历史
+- worklog 作者行不进 `parse_worklog` 的 raw,周报模型输入与旧格式逐字段一致;session.json 的 `author` 可选,lint 只校验格式
+- log-work skill 只经 `scripts/worklog_add.py` 写 worklog,LLM 不直接改日志文件
+- 二阶段共享走 local-first:本地写成功后经发件箱推公网服务;不在网络共享盘上跑文件锁/SQLite;工作项按单项文件幂等推送
+- 资源模型唯一实现 `lib/inventory`:ID `<env>/<cluster>/<kind>/<name>…`,种类经 `register_kind` 扩展;核心模块不得出现环境名
+- 环境包是应用数据:`env_pack`(绝对或相对数据根)→ `<数据根>/env/` → 自带 `envs/example`;配了却无 env.yaml 显式失败
+- 程序只读环境目录(采集脚本除外);挂示例包时 `/api/env` 的 origin=example,顶栏提示未挂载环境数据
+- 「设置 → 关于」显示环境包来源/路径/提交号;不提供导入命令,换机按 `docs/migration.md` 清单搬数据目录
+- 新增本机配置文件或设置类 state 文件时,同步 `docs/migration.md` 的清单
+- 环境数据在环境包 `config/`(本文写作 `config/<名>` 的环境文件均指它)、节点只读脚本在 `playbooks/`;路径一律相对包根,`repo:` 已停用
+- 读环境文件一律经 `EnvPack.config_file`/`source_path`;登记的 `playbooks/…` 引用经 `playbook_path` 解析,越界即拒;`playbooks/_lib` 留核心
+- 环境包 Python 扩展只认 `EXTENSION_POINTS` 四个扩展点,经 `lib/envpack/extensions.load_object` 导入,失败显式报错不降级
+- `requires_core` 不满足即拒载环境包;核心版本取 pyproject
+- 平台集合一律按角色问环境包(`cluster_keys("managed"|"knowledge"|"mysql_direct")`),禁止写死集群集合或 Literal
+- 知识库平台键 = 集群 `knowledge_key`(缺省旧短键);standalone 旧短键 shared 与环境级重名,知识库键为 standalone
+- 任务/告警旧短键查知识库(检索请求、告警路由、晋升比对)一律经 `EnvPack.knowledge_key` 映射,不得直接与文档平台比
+- 服务与任务类型封闭词表在环境包 env.yaml 的 `knowledge` 段,核心 frontmatter 只读;新增服务改环境包
+- ContextPack 查询停用词 = knowledge 集群键减服务词表(集群键是停用词,与服务同名的仍是内容词)
+- 核心测试一律挂示例环境包 `envs/example`(conftest 会话级强制,不看开发机 env_pack);环境包测试在包内 tests/ 挂本包
+- 测试自建临时仓用 `as_env_pack` 兼作环境包;子进程用 `example_data_root`;换时区用夹具 `use_env_timezone`
+- 核心测试不读真实知识库与真实清单:红线文档用 `write_redlines` 现算;依赖真实数据的用例放环境包 tests/
+- 示例环境包虚构:地址只用文档地址段、域名 example.internal;它的扩展(demo 告警源/图谱/凭据项)演示扩展点
+- 测试硬闸(conftest):只许连回环地址;调度器默认不跑真实告警/资源 tick,需要的用例自行替换 `lib.scheduler` 的 run
+- 前端平台显示名由 `/api/knowledge/tree` 的 `platform_labels` 下发,前端不写死平台键
+- 清单按来源 mtime 在内存重建、不落盘;告警/快照/任务仍存旧短键 platform/node,资源 ID 只在 API 派生(host_ref/target_ref)
+- 模型可见 schema 的平台 enum 由 `lib/envpack/fields` 生成时注入,顺序即 env.yaml 声明顺序;改动须保持工具 schema 不变
+- 落盘 platform 写资源引用(`<env>/<cluster>`,环境级 `<env>`),读取一律归一为短键;`shared` 是核心环境级键
+- 输入契约仍是短键:模型提案、导入 manifest、检索请求、评估集;writer(render_document/_index/采集器)负责改写成引用
+- 比较文档平台一律用 `load_doc` 归一后的值,不得拿原始 frontmatter 与短键比
+- 文档 `author` 可选:writer 取 session author 或本机用户,无则不写、读时推断为数据根所有者;lint 校验 ID 格式
+- 库级共享范围 `kb.yaml share_scope`(private|shared,缺省 private);一阶段只有 private,二阶段 shared 库经共享服务同步
+- 知识库生成区来源文字(`config/topology/…`)按环境包内相对路径生成;包内改名或搬动须同步改知识库生成区
+- 专有名词 lint = 环境包 `lint/nouns.yaml` + 内置通用敏感模式,扫 envs/ 外全部入库文件;核心零命中是测试闸门
+- 闸门覆盖 envs/ 外全部入库文件;pre-commit 扫暂存区,CI 全量扫;占位值行内写 `noun-lint: allow`
+- 私有环境包仓另有「核心干净」测试,用本环境词表扫同级核心仓(私有侧守公开侧)
+- 知识库根一律经 `lib.kb.bases.resolve_knowledge_root` 解析(环境变量 → `<数据根>/config/paths.local.yaml` → `<数据根>/knowledge`),禁止写死 `repo_root / "knowledge"`
+- 知识库根下每个含 `kb.yaml` 的子目录是一个库(如 `cluster/` platform_service 布局、分组库 flat 布局);无 kb.yaml 即旧单库布局
+- 文档 ID = 相对知识库根的路径(带库前缀);遍历一律用 `iter_documents`,按位置推断平台/服务/组件须用库内路径(`split_doc_path`)
+- 历史 ID 经知识库根 `_redirects.yaml` 映射:读文档/chunk、引用反查、晋升呼应、oplog 校验都须认旧 ID,不改历史 records/任务
+- oplog 引用写作 `knowledge/<文档 ID>`(`knowledge/` 指知识库根),须落在某库 `oplog/` 下
+- 未指定库的写入(排查沉淀、kb_import)落默认库(首个 platform_service 库);分组 flat 库按分组值落子目录,无值进 common_dir
+- 提交前认准仓:改知识库用 `git -C ../knowledge`,改记录用 `git -C ../records`,改代码用主仓;三仓各有 pre-commit lint
+- 知识库仓与 records 仓 hook 由 `scripts/install_hooks.sh` 写死主仓绝对路径,任一仓搬家后须重跑
+- `docs/{specs,plans,ohaze}/` 含集群拓扑与内网地址,gitignore 且**无独立仓**:纯本地文件,新机 clone 后不存在
+- 架构总览(分层依赖/运行时拓扑/主链路/数据落点/已知越层):[docs/architecture.md](docs/architecture.md),架构变化时同步
+- 当前 Agent 设计稿(类型/Loop/Context 优化/工具语义)索引见 README「Agent-Ops 任务链路」
+- 后续路线:[ROADMAP.md](ROADMAP.md)

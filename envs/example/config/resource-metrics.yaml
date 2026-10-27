@@ -1,0 +1,167 @@
+# 资源采集经 Prometheus 插件(MCP)的 feeds.resources:快照 / 采集目标 / 具名查询。
+# 本文件把插件字段映射到中台资源模型;插件没给的字段在快照里缺失(不填 0)。
+version: 2
+node:
+  excluded_platforms:
+  - infra   # 平台名 = 插件的 platform 标签值;不纳入中台资源视图的平台(如 GPU 推理节点)
+  fields:
+    cpu_used_pct:
+      from: cpu_used_ratio
+      scale: 100
+    cpu_cores: cpu_cores
+    load1: load1
+    load5: load5
+    load15: load15
+    memory_total_bytes: memory_total_bytes
+    memory_available_bytes: memory_available_bytes
+    swap_used_bytes: swap_used_bytes
+    swap_total_bytes: swap_total_bytes
+    major_page_faults_total: major_page_faults_total
+  filesystem:
+    local_fstypes:
+    - xfs
+    - ext4
+    static_fstypes:
+    - vfat
+    shared_fstypes:
+    - nfs
+    - fuse.mfs
+    fields:
+      size_bytes: size_bytes
+      available_bytes: avail_bytes
+      files: files
+      files_free: files_free
+      readonly: readonly
+jvm:
+  fields:
+    heap_used_bytes: heap_used_bytes
+    heap_max_bytes: heap_max_bytes
+    heap_committed_bytes: heap_committed_bytes
+    gc_time_pct:
+      from: gc_time_ratio
+      scale: 100
+  process_fields:
+    process_resident_bytes: rss_bytes
+  old_gen_after_gc: old_gen_after_gc_bytes
+jvm_components:
+  hbase/master:
+    service: hbase
+    component: HBASE_MASTER
+  hbase/regionserver:
+    service: hbase
+    component: HBASE_REGIONSERVER
+  hdfs/datanode:
+    service: hdfs
+    component: DATANODE
+  hdfs/journalnode:
+    service: hdfs
+    component: JOURNALNODE
+  hdfs/namenode:
+    service: hdfs
+    component: NAMENODE
+  hive/hiveserver2:
+    service: hive
+    component: HIVE_SERVER
+  mapreduce/history:
+    service: mapreduce
+    component: HISTORYSERVER
+  spark/thrift:
+    service: spark
+    component: SPARK2_THRIFTSERVER
+  yarn/nodemanager:
+    service: yarn
+    component: NODEMANAGER
+  yarn/resourcemanager:
+    service: yarn
+    component: RESOURCEMANAGER
+component_labels:
+  NAMENODE: hdfs/namenode
+  HBASE_MASTER: hbase/master
+  HBASE_REGIONSERVER: hbase/regionserver
+  JOURNALNODE: hdfs/journalnode
+  NODEMANAGER: yarn/nodemanager
+  RESOURCEMANAGER: yarn/resourcemanager
+  HISTORYSERVER: mapreduce/history
+  HIVE_SERVER: hive/hiveserver2
+  HIVE_METASTORE: hive/metastore
+  KAFKA_BROKER: kafka/broker
+  ZOOKEEPER_SERVER: zookeeper/server
+  CLICKHOUSE_SERVER: clickhouse/server
+  REDIS: redis/server
+  REDIS_MASTER: redis/server
+  REDIS_SLAVE: redis/server
+  NGINX: nginx/server
+  SPARK2_JOBHISTORYSERVER: spark/history
+  SPARK2_THRIFTSERVER: spark/thrift
+targets:
+  ignore_jobs: ^blackbox_
+business_metrics:
+  mysql:
+    service: MySQL
+    targets:
+      system: mysql
+    metrics:
+      replication_lag_seconds:
+        label: 主从延迟
+        unit: seconds
+        optional: true
+        warning_above: 10
+        critical_above: 30
+        query: mysql_replication_lag_seconds
+      connection_usage_pct:
+        label: 连接使用率
+        unit: percent
+        warning_above: 80
+        critical_above: 95
+        query: mysql_connection_used_ratio
+        scale: 100
+      queries_per_second:
+        label: QPS
+        unit: per_second
+        query: mysql_queries_per_second
+      slow_queries_per_second:
+        label: 慢查询速率
+        unit: per_second
+        warning_above: 0.01
+        critical_above: 0.1
+        query: mysql_slow_queries_per_second
+      row_lock_current_waits:
+        label: 当前行锁等待
+        unit: count
+        warning_above: 1
+        critical_above: 10
+        query: mysql_row_lock_current_waits
+      buffer_pool_used_pct:
+        label: Buffer Pool 使用率
+        unit: percent
+        query: mysql_buffer_pool_used_ratio
+        scale: 100
+risk_defaults:
+  cpu:
+    warning_pct: 80
+    critical_pct: 90
+    min_samples: 6
+  memory:
+    warning_available_pct: 15
+    critical_available_pct: 8
+    min_samples: 6
+  filesystem:
+    default_target_pct: 80
+    root_target_pct: 70
+    boot_target_pct: 70
+    warning_eta_hours: 168
+    critical_eta_hours: 24
+    min_hours: 12
+  jvm:
+    warning_heap_used_pct: 80
+    critical_heap_used_pct: 90
+    warning_after_gc_pct: 70
+    critical_after_gc_pct: 85
+    trend_window_hours: 168
+    min_hours: 12
+    min_growth_pct_points: 1
+    min_slope_pct_points_per_hour: 0.02
+    min_trend_correlation: 0.6
+    warning_eta_hours: 168
+    critical_eta_hours: 24
+    gc_overhead_critical_pct: 10

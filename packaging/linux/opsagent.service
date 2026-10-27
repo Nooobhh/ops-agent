@@ -1,0 +1,17 @@
+# systemd 用户级单元模板:把 <安装根> 换成实际路径后放到 ~/.config/systemd/user/opsagent.service
+#   systemctl --user daemon-reload && systemctl --user enable --now opsagent
+#   无人登录也要运行:loginctl enable-linger <用户>
+# 升级:systemctl --user stop opsagent && <安装根>/bin/opsagent upgrade <tarball> && systemctl --user start opsagent
+[Unit]
+Description=ops-agent 中台
+After=network-online.target
+
+[Service]
+ExecStart=<安装根>/bin/opsagent serve --port 8420
+Restart=on-failure
+RestartSec=10
+# 停止走 SIGTERM(uvicorn 正常退出,lifespan 停 worker);在途采集最长约数十秒
+TimeoutStopSec=60
+
+[Install]
+WantedBy=default.target

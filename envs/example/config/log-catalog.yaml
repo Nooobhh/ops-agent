@@ -1,0 +1,99 @@
+# 日志位置清单(示例,由环境包的日志目录采集脚本生成;人工条目 source: manual)
+version: 1
+platforms:
+  alpha:
+    collected_at: '2026-01-01T00:00:00+00:00'
+    services:
+      hbase:
+      - path: /var/log/hbase
+        nodes: all
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      hdfs:
+      - path: /var/log/hadoop/hdfs
+        nodes: all
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      hive:
+      - path: /var/log/hive
+        nodes:
+        - node1
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      jobs:
+      - path: /opt/app/jobs/logs
+        nodes:
+        - node3
+        source: manual
+      kafka:
+      - path: /var/log/kafka
+        nodes:
+        - node2
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      mysql:
+      - path: /var/log/mysql
+        nodes:
+        - node3
+        source: manual
+      storm:
+      - path: /var/log/storm
+        nodes:
+        - node3
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      system:
+      - path: /var/log
+        nodes: all
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      yarn:
+      - path: /var/log/hadoop-yarn/yarn
+        nodes: all
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      zookeeper:
+      - path: /var/log/zookeeper
+        nodes: all
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+  beta:
+    collected_at: '2026-01-01T00:00:00+00:00'
+    services:
+      hdfs:
+      - path: /var/log/hadoop/hdfs
+        nodes: all
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      hive:
+      - path: /var/log/hive
+        nodes:
+        - node1
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      mysql:
+      - path: /var/log/mysql
+        nodes:
+        - node3
+        source: manual
+      nginx:
+      - path: /var/log/nginx
+        nodes:
+        - node2
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      system:
+      - path: /var/log
+        nodes: all
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      yarn:
+      - path: /var/log/hadoop-yarn/yarn
+        nodes: all
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'
+      zookeeper:
+      - path: /var/log/zookeeper
+        nodes: all
+        source: probe
+        collected_at: '2026-01-01T00:00:00+00:00'

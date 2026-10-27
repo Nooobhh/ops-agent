@@ -1,0 +1,485 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --bg: #fff; --fg: #2d3748; --muted: #8593a5; --line: #e4e8ee; --nav-bg: #f7f9fb;
+    --top-bg: #1a2332; --top-fg: #e6edf5; --link: #1c4fa0; --sel: #e3ecfb; --code-bg: #f2f5f8;
+    --pre-bg: #1a2332; --pre-fg: #d5e0ee; --ok: #2f9e6e; --draft: #cbd5e0;
+    --badge-alert-bg: #fdeaea; --badge-alert-fg: #b03636;
+    --background: 0 0% 100%; --foreground: 215 28% 23%; --card: 0 0% 100%; --card-foreground: 215 28% 23%;
+    --primary: 217 70% 37%; --primary-foreground: 210 40% 98%; --secondary: 210 25% 96%; --secondary-foreground: 215 28% 23%;
+    --muted-token: 210 25% 96%; --muted-foreground: 215 13% 58%; --accent: 217 61% 94%; --accent-foreground: 217 70% 37%;
+    --destructive: 0 53% 45%; --destructive-foreground: 0 0% 100%; --border: 216 18% 91%; --input: 216 18% 91%; --ring: 217 70% 37%;
+    --scrollbar-track: #eef1f5; --scrollbar-thumb: #a5afbd; --scrollbar-thumb-hover: #7d8999;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #151b26; --fg: #d5dde8; --muted: #7a8798; --line: #2a3444; --nav-bg: #1a2230;
+    --top-bg: #0e131c; --top-fg: #e6edf5; --link: #7fa8e8; --sel: #243652; --code-bg: #232d3d;
+    --pre-bg: #0e131c; --badge-alert-bg: #3d2326; --badge-alert-fg: #e08585;
+    --background: 216 29% 12%; --foreground: 215 25% 87%; --card: 215 29% 15%; --card-foreground: 215 25% 87%;
+    --primary: 216 67% 70%; --primary-foreground: 218 33% 9%; --secondary: 216 25% 19%; --secondary-foreground: 215 25% 87%;
+    --muted-token: 216 25% 19%; --muted-foreground: 215 13% 54%; --accent: 216 39% 23%; --accent-foreground: 216 67% 70%;
+    --destructive: 357 27% 35%; --destructive-foreground: 0 43% 70%; --border: 215 24% 22%; --input: 215 24% 22%; --ring: 216 67% 70%;
+    --scrollbar-track: #151b26; --scrollbar-thumb: #465266; --scrollbar-thumb-hover: #627086;
+  }
+  * {
+    @apply border-border;
+    letter-spacing: 0;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    scrollbar-width: thin;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+  *::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border: 2px solid var(--scrollbar-track);
+    border-radius: 8px;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+  html { background: var(--bg); }
+  body { @apply m-0 bg-background font-sans text-foreground antialiased; font-size: 14px; }
+}
+
+@layer components {
+  .app-alert {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.25rem;
+  }
+  .app-alert:has(> svg) {
+    grid-template-columns: 1rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+  }
+  .app-alert > svg {
+    grid-column: 1;
+    grid-row: 1;
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.125rem;
+  }
+  .app-alert > svg ~ * { grid-column: 2; }
+  .top-nav { @apply flex h-full items-center gap-2 whitespace-nowrap border-b-2 border-transparent px-3 text-sm text-[#b7c4d4] transition-colors hover:bg-white/5 hover:text-white; }
+  .top-nav-active { @apply border-[#7fa8e8] text-white; }
+  .status-badge { @apply rounded border-border bg-muted font-normal text-foreground; }
+  .status-badge[data-status="active"], .status-badge[data-status="critical"] { @apply border-[#b03636]/35 bg-[#fdeaea] text-[#9f2d2d]; }
+  :root[data-theme="dark"] .status-badge[data-status="active"], :root[data-theme="dark"] .status-badge[data-status="critical"] { @apply border-[#e08585]/35 bg-[#3d2326] text-[#e08585]; }
+  .status-badge[data-status="warning"], .status-badge[data-status="suppressed"] { @apply border-[#d69e2e]/35 bg-[#fff8df] text-[#8b6515]; }
+  :root[data-theme="dark"] .status-badge[data-status="warning"], :root[data-theme="dark"] .status-badge[data-status="suppressed"] { @apply border-[#d69e2e]/35 bg-[#3a321c] text-[#e5b94f]; }
+  .status-badge[data-status="resolved"] { @apply border-[#2f9e6e]/35 bg-[#e8f7f0] text-[#247a56]; }
+  :root[data-theme="dark"] .status-badge[data-status="resolved"] { @apply border-[#2f9e6e]/35 bg-[#17362a] text-[#65c99c]; }
+  .class-badge { @apply px-1.5 py-0 text-[10px]; }
+  .class-badge[data-status="watch"] { @apply border-[#718096]/30 bg-[#f2f5f8] text-[#5d6878]; }
+  .class-badge[data-status="chronic"] { @apply border-[#3974c6]/30 bg-[#e8f1ff] text-[#285b9d]; }
+  .class-badge[data-status="ignore"] { @apply border-[#8a96a6]/25 bg-[#eef0f3] text-[#707b89]; }
+  .class-badge[data-status="flapping"] { @apply border-[#d97706]/30 bg-[#fff1dc] text-[#9a5205]; }
+  :root[data-theme="dark"] .class-badge[data-status="watch"] { @apply border-[#8593a5]/30 bg-[#232d3d] text-[#a6b1c0]; }
+  :root[data-theme="dark"] .class-badge[data-status="chronic"] { @apply border-[#6ea3ed]/30 bg-[#203553] text-[#8db8f4]; }
+  :root[data-theme="dark"] .class-badge[data-status="ignore"] { @apply border-[#788494]/30 bg-[#252d39] text-[#9aa5b4]; }
+  :root[data-theme="dark"] .class-badge[data-status="flapping"] { @apply border-[#e49a43]/30 bg-[#3b2b1a] text-[#efb467]; }
+  .legend { @apply inline-block size-2 rounded-sm; }
+  .legend.critical { @apply bg-[#b5332e]; } .legend.warning { @apply bg-[#d65a2f]; } .legend.other { @apply bg-[#e49a2f]; }
+  .filter-band { @apply mb-5 grid grid-cols-1 gap-3 border-y bg-[var(--nav-bg)] p-4 sm:grid-cols-2 lg:grid-cols-5; }
+  .filter-field { @apply flex min-w-0 flex-col gap-1; }
+  .filter-field > span { @apply text-[11px] font-semibold uppercase text-muted-foreground; }
+  .detail-section { @apply border-b py-6; }
+  .detail-section h2 { @apply mb-4 text-base font-semibold; }
+  .detail-section h3 { @apply text-sm font-semibold; }
+  .detail-facts { @apply mt-5 grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-4 md:grid-cols-4; }
+  .detail-facts dt { @apply text-xs text-muted-foreground; }
+  .detail-facts dd { @apply mt-1 text-sm font-medium; }
+  .occurrence-list { @apply border-l border-border pl-5; }
+  .occurrence-row { @apply relative flex min-h-16 items-start gap-3 border-b py-3 last:border-b-0; }
+  .occurrence-row p { @apply mt-1 text-xs text-muted-foreground; }
+  .occurrence-dot { @apply absolute -left-[24.5px] top-[19px] size-2 rounded-full bg-[#2f9e6e] ring-4 ring-background; }
+  .occurrence-dot.open { @apply bg-[#b03636]; }
+  .comparison-grid { @apply grid gap-3 md:grid-cols-2; }
+  .comparison-label { @apply mb-2 text-xs font-semibold text-muted-foreground; }
+  .model-settings-row {
+    display: grid;
+    grid-template-columns:
+      minmax(150px, 1.1fr)
+      minmax(160px, 1fr)
+      minmax(220px, 1.5fr)
+      minmax(130px, auto)
+      76px;
+    @apply items-center gap-4 border-b px-3 py-3 last:border-b-0;
+  }
+  .model-settings-row-header { @apply bg-[var(--nav-bg)] py-2 text-xs font-semibold text-muted-foreground; }
+  .settings-primary-tabs { @apply mb-6 flex flex-wrap gap-x-6 gap-y-3 border-b; }
+  .settings-notice-row { @apply mb-4 flex min-h-12 items-center justify-between gap-4 rounded-md border bg-background px-4 py-3 text-sm; }
+  .settings-page-bottom-actions { @apply flex flex-wrap items-center justify-end gap-3; }
+  .settings-workspace[data-has-sidebar="true"] { display: grid; grid-template-columns: 180px minmax(0, 1fr); @apply items-start gap-8; }
+  .settings-content { @apply min-w-0; }
+  .settings-section { @apply border-y py-5; }
+  .settings-card { @apply overflow-hidden; }
+  .settings-card-content { @apply p-0; }
+  .settings-setting-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 320px) auto;
+    @apply items-center gap-5 border-b px-4 py-3 last:border-b-0;
+  }
+  .settings-setting-control { @apply min-w-0; }
+  .settings-setting-control > input,
+  .settings-setting-control > select { @apply w-full; }
+  .settings-setting-info-row { @apply border-b px-4 py-3 last:border-b-0; }
+  .settings-action-row { @apply flex flex-wrap items-center gap-2 border-b px-4 py-3 last:border-b-0; }
+  .settings-status-grid { @apply grid gap-0; }
+  .settings-status-grid > div { @apply flex items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0; }
+  .settings-sidebar { @apply sticky top-20 min-w-0 border-r pr-4; }
+  .settings-sidebar-title { @apply mb-3 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground; }
+  .settings-sidebar nav { @apply flex flex-col gap-1; }
+  .model-default-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.7fr) minmax(220px, 1.4fr) minmax(160px, 0.8fr) minmax(120px, 0.6fr);
+    @apply items-center gap-4 border-b py-4;
+  }
+  .agent-policy-row {
+    grid-template-columns: minmax(140px, 0.7fr) minmax(200px, 1.2fr) minmax(150px, 0.8fr) minmax(100px, 0.55fr) minmax(100px, 0.55fr);
+  }
+  .triage-page { @apply flex flex-col; }
+  .triage-health-banner { @apply mb-3 shrink-0; }
+  .triage-layout {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) minmax(420px, 1fr) minmax(240px, 320px);
+    min-height: 600px;
+    height: calc(100dvh - 8.5rem);
+    @apply overflow-hidden border-y bg-background;
+  }
+  .triage-layout[data-task-collapsed="true"] {
+    grid-template-columns: 52px minmax(420px, 1fr) minmax(240px, 320px);
+  }
+  .triage-layout[data-context-collapsed="true"] {
+    grid-template-columns: minmax(220px, 280px) minmax(420px, 1fr) 52px;
+  }
+  .triage-layout[data-task-collapsed="true"][data-context-collapsed="true"] {
+    grid-template-columns: 52px minmax(420px, 1fr) 52px;
+  }
+  .triage-task-pane { @apply min-h-0 min-w-0 border-r; }
+  .triage-context-pane { @apply min-h-0 min-w-0 border-l; }
+  .triage-collapsed-rail { @apply flex h-full items-start justify-center bg-muted/20 pt-3; }
+  .triage-task-pane .triage-collapsed-rail { @apply border-r-0; }
+  .triage-context-pane .triage-collapsed-rail { @apply border-l-0; }
+  .triage-mobile-actions { @apply hidden items-center gap-2; }
+  .triage-task-item { @apply relative; }
+  .triage-task-row { @apply relative block w-full border-b px-4 py-3 text-foreground transition-colors hover:bg-muted/60; }
+  .triage-task-row[data-selected="true"] { @apply bg-accent text-accent-foreground; box-shadow: inset 2px 0 0 hsl(var(--primary)); }
+  .triage-task-row[data-unread="true"] .triage-task-title { @apply font-semibold; }
+  .triage-task-unread-dot { @apply mt-2 size-1.5 shrink-0 rounded-full bg-primary; }
+  /* 标题超长:静态截断省略,悬停后在容器内往返滚动展示全文(cqw 需要容器查询支持,不支持时保持省略) */
+  .triage-task-title {
+    @apply block min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left text-sm font-medium leading-5;
+    text-overflow: ellipsis;
+    container-type: inline-size;
+  }
+  .triage-task-title-text { @apply inline-block; }
+  .triage-task-row:hover .triage-task-title { text-overflow: clip; }
+  .triage-task-row:hover .triage-task-title-text {
+    animation: triage-title-scroll var(--triage-title-duration, 12s) linear infinite alternate;
+  }
+  .triage-task-more { @apply absolute right-2 top-3 z-20 hidden size-7 items-center justify-center rounded border bg-background text-muted-foreground shadow-sm transition-colors hover:text-foreground; }
+  .triage-task-item:hover .triage-task-more,
+  .triage-task-item:focus-within .triage-task-more,
+  .triage-task-more.is-open { @apply flex; }
+  .triage-task-menu { @apply absolute right-2 top-11 z-30 min-w-36 rounded-md border bg-popover p-1 text-popover-foreground shadow-lg; }
+  .triage-task-menu button { @apply flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-45; }
+  .triage-task-menu button svg { @apply size-3.5 shrink-0; }
+  .triage-status { @apply inline-flex items-center whitespace-nowrap text-[11px] font-medium; }
+  .triage-status-running, .triage-status-waiting_operation, .triage-status-completed { @apply text-[#247a56]; }
+  :root[data-theme="dark"] .triage-status-running,
+  :root[data-theme="dark"] .triage-status-waiting_operation,
+  :root[data-theme="dark"] .triage-status-completed { @apply text-[#65c99c]; }
+  .triage-status-waiting_input, .triage-status-waiting_approval { @apply text-[#9a6518]; }
+  :root[data-theme="dark"] .triage-status-waiting_input,
+  :root[data-theme="dark"] .triage-status-waiting_approval { @apply text-[#e5b94f]; }
+  .triage-status-failed, .triage-status-kb_failed { @apply text-destructive; }
+  .triage-status-queued, .triage-status-cancelled { @apply text-muted-foreground; }
+  .triage-conversation-scroll { @apply min-h-0 flex-1 overflow-y-auto overscroll-contain; }
+  .triage-message { @apply flex max-w-[88%] flex-col gap-1.5; }
+  .triage-message p { @apply whitespace-pre-wrap break-words text-sm leading-6; }
+  .triage-message-author { @apply flex items-center gap-1.5 text-xs font-medium text-muted-foreground; }
+  .triage-message-user { @apply ml-auto rounded-md bg-accent px-3 py-2.5 text-accent-foreground; }
+  .triage-message-user .triage-message-author { @apply text-accent-foreground/70; }
+  .triage-message-agent { @apply mr-auto; }
+  .triage-tool { @apply border bg-[var(--nav-bg)] p-3; }
+  .triage-tool-icon { @apply flex size-8 shrink-0 items-center justify-center rounded bg-background text-muted-foreground ring-1 ring-border; }
+  .triage-tool-state { @apply flex items-center gap-1 text-[11px] font-medium; }
+  .triage-tool-state-running { @apply text-[var(--link)]; }
+  .triage-tool-state-done { @apply text-[#247a56]; }
+  :root[data-theme="dark"] .triage-tool-state-done { @apply text-[#65c99c]; }
+.triage-tool-state-failed { @apply text-destructive; }
+.triage-tool-state-pending { @apply text-amber-600; }
+.triage-tool-state-needs_input { @apply text-amber-600; }
+.triage-tool-state-rejected { @apply text-destructive; }
+.triage-tool-state-skipped { @apply text-muted-foreground; }
+.triage-tool-state-partial { @apply text-amber-600; }
+  .triage-tool-state-interrupted { @apply text-muted-foreground; }
+  .triage-tool-group { @apply overflow-hidden rounded border bg-[var(--nav-bg)]; }
+  .triage-tool-group > summary::-webkit-details-marker { display: none; }
+  .triage-tool-output { @apply mt-3 max-h-60 overflow-auto bg-[var(--pre-bg)] font-mono text-xs leading-5 text-[var(--pre-fg)]; }
+  .triage-tool-output pre { @apply whitespace-pre-wrap break-words p-3; }
+  .triage-approval { @apply border border-[#d69e2e]/45 bg-[#d69e2e]/10 p-4; }
+  .triage-approval-facts { @apply mt-3 flex flex-col gap-2 text-xs; }
+  .triage-approval-facts > div { @apply grid grid-cols-[64px_minmax(0,1fr)] gap-2; }
+  .triage-approval-facts dt { @apply text-muted-foreground; }
+  .triage-approval-facts dd { @apply min-w-0 break-words; }
+  .triage-approval-facts code { @apply block max-h-28 overflow-auto whitespace-pre-wrap bg-[var(--pre-bg)] p-2 font-mono text-[11px] leading-5 text-[var(--pre-fg)]; }
+  .triage-operation-rows { @apply mt-1 flex flex-col divide-y border text-[11px]; }
+  .triage-operation-rows > div { @apply flex flex-col gap-0.5 px-2 py-1.5; }
+  .triage-operation-rows span { @apply min-w-0 break-words; }
+  .triage-operation-exec { @apply mt-4 border-t pt-3 text-xs; }
+  .triage-operation-tone-ok { @apply text-[#247a56]; }
+  .triage-operation-tone-warn { @apply text-[#9a6518]; }
+  .triage-operation-tone-bad { @apply text-destructive; }
+  .triage-operation-tone-muted { @apply text-muted-foreground; }
+  :root[data-theme="dark"] .triage-operation-tone-ok { @apply text-[#65c99c]; }
+  :root[data-theme="dark"] .triage-operation-tone-warn { @apply text-[#e5b94f]; }
+  .triage-kb-diff { @apply max-h-96 overflow-auto whitespace-pre-wrap break-words bg-[var(--pre-bg)] p-3 font-mono text-[11px] leading-5 text-[var(--pre-fg)]; }
+  .triage-diff-add { @apply bg-[#2f9e6e]/25 text-[#8ee0b8]; }
+  .triage-diff-del { @apply bg-[#b03636]/25 text-[#e8a3a3]; }
+  .triage-diff-hunk { @apply text-[#7fa8e8]; }
+  .triage-diff-meta { @apply text-muted-foreground; }
+  .triage-event-status { @apply self-center border-y px-4 py-1 text-[11px] text-muted-foreground; }
+  .triage-pending-run-card { @apply mx-auto flex w-full items-center gap-3 rounded-md border bg-muted/30 px-4 py-4 text-sm; }
+  .triage-commands { @apply mt-3 flex flex-col gap-2; }
+  .triage-commands li { @apply min-w-0 list-none; }
+  .triage-commands code { @apply block min-w-0 max-w-full overflow-x-hidden whitespace-pre-wrap break-all bg-[var(--pre-bg)] p-2 font-mono text-[11px] leading-5 text-[var(--pre-fg)]; overflow-wrap: anywhere; }
+  .triage-commands .triage-command-scope { @apply mb-1 block break-all font-mono text-[11px] text-muted-foreground; }
+  .markdown-view { @apply min-w-0 max-w-full text-sm leading-6 break-words; overflow-wrap: anywhere; }
+  .markdown-view > * { @apply min-w-0 max-w-full; }
+  .markdown-view > :first-child { @apply mt-0; }
+  .markdown-frontmatter { @apply mb-4 max-w-full overflow-hidden whitespace-pre-wrap break-words border-l-2 bg-muted/40 px-3 py-2 font-mono text-[11px] leading-5 text-muted-foreground; overflow-wrap: anywhere; }
+  .markdown-view h1 { @apply mb-3 mt-5 text-base font-semibold; }
+  .markdown-view h2 { @apply mb-2 mt-5 text-sm font-semibold; }
+  .markdown-view h3 { @apply mb-2 mt-4 text-sm font-medium; }
+  .markdown-view p { @apply my-2 min-w-0 max-w-full; overflow-wrap: anywhere; }
+  .markdown-view ul { @apply my-2 list-disc pl-5; }
+  .markdown-view ol { @apply my-2 list-decimal pl-5; }
+  .markdown-view li { @apply my-1 min-w-0 max-w-full; overflow-wrap: anywhere; }
+  .markdown-view blockquote { @apply my-2 border-l-2 pl-3 text-muted-foreground; }
+  .markdown-view a { @apply text-[var(--link)] underline underline-offset-2; }
+  .markdown-view code { @apply max-w-full bg-[var(--code-bg)] px-1 py-0.5 font-mono text-[12px]; overflow-wrap: anywhere; word-break: break-word; }
+  .markdown-view pre { @apply my-3 max-w-full overflow-hidden whitespace-pre-wrap break-words bg-[var(--pre-bg)] p-3 text-[var(--pre-fg)]; overflow-wrap: anywhere; }
+  .markdown-view pre code { @apply bg-transparent p-0 text-[11px] leading-5 text-inherit; }
+  .markdown-view hr { @apply my-4 border-t; }
+  .markdown-view a.wl { @apply no-underline border-b border-dashed border-[var(--link)]; }
+  .markdown-view a.wl-ambiguous { @apply border-dotted; }
+  .markdown-view em.wl-dead { @apply not-italic text-muted-foreground border-b border-dashed border-muted-foreground/50; }
+  .markdown-view table { @apply my-3 w-full max-w-full table-fixed border-collapse text-xs; }
+  .markdown-view th, .markdown-view td { @apply max-w-0 border px-2 py-1 text-left align-top; overflow-wrap: anywhere; word-break: break-word; }
+  .markdown-view th { @apply bg-muted/50 font-medium; }
+  .triage-composer { @apply shrink-0 border-t bg-background px-4 py-3 lg:px-6; }
+  .triage-model-grid { @apply grid grid-cols-2 gap-4; }
+  .triage-context-shell { @apply flex h-full min-h-0 flex-col bg-muted/25; }
+  .triage-context-toolbar { @apply flex min-h-14 shrink-0 items-center justify-between gap-3 border-b px-4; }
+  .triage-context-toolbar h2 { @apply text-sm font-semibold; }
+  .triage-context-section { @apply border-b pb-4; }
+  .triage-context-section + .triage-context-section { @apply mt-4; }
+  .triage-context-section-toggle { @apply flex w-full items-center gap-2 text-left text-xs font-semibold uppercase text-muted-foreground transition-colors hover:text-foreground; }
+  .triage-context-section-toggle svg { @apply size-3.5 shrink-0; }
+  .triage-context-section-toggle .triage-context-chevron { @apply ml-auto transition-transform; }
+  .triage-context-section-toggle[aria-expanded="true"] .triage-context-chevron { @apply rotate-180; }
+  .triage-context-facts { @apply mt-4 flex flex-col gap-3; }
+  .triage-context-facts > div { @apply grid grid-cols-[80px_minmax(0,1fr)] gap-2 text-sm; }
+  .triage-context-facts dt { @apply text-muted-foreground; }
+  .triage-context-facts dd { @apply min-w-0 break-words font-medium; }
+}
+
+@media (max-width: 899px) {
+  .settings-workspace[data-has-sidebar="true"] { display: block; }
+  .settings-sidebar { @apply static mb-5 border-b border-r-0 pb-3 pr-0; }
+  .settings-sidebar nav { @apply flex-row flex-wrap; }
+  .settings-setting-row { grid-template-columns: minmax(0, 1fr) minmax(150px, 220px) auto; }
+  .triage-layout {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 560px;
+    height: calc(100dvh - 8.5rem);
+  }
+  .triage-task-pane, .triage-context-pane { display: none; }
+  .triage-mobile-actions { display: flex; }
+  /* The task list is rendered inside a Sheet on touch-sized viewports, where
+     there is no hover state to reveal the actions button. */
+  .triage-task-more { @apply flex; }
+}
+
+@media (max-width: 760px) {
+  .model-settings-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .model-settings-row-header { display: none; }
+  .model-settings-row > :nth-child(2),
+  .model-settings-row > :nth-child(3),
+  .model-settings-row > :nth-child(4) { grid-column: 1; }
+  .model-settings-row > :last-child { grid-column: 2; grid-row: 1 / span 4; }
+  .model-default-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .agent-policy-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@layer components {
+  .knowledge-topology-shell { @apply min-w-0; --topology-canvas-height: clamp(560px, calc(100dvh - 160px), 900px); }
+  .knowledge-topology-loading { @apply flex min-h-[560px] flex-col gap-4; }
+  .topology-toolbar { @apply flex flex-wrap items-center justify-between gap-3 border-y bg-[var(--nav-bg)] p-3; }
+  .topology-toolbar-main, .topology-toolbar-actions { @apply flex flex-wrap items-center gap-2; }
+  .topology-search-wrap { @apply flex min-w-0 flex-1 items-center gap-2 rounded-md border bg-background px-2.5; }
+  .topology-search-wrap input { @apply h-8 border-0 px-1 shadow-none focus-visible:ring-0; }
+  .topology-select { @apply h-9 rounded-md border border-input bg-background px-3 text-sm; }
+  .topology-filter-badge { @apply whitespace-nowrap; }
+  .topology-summary-row { @apply flex min-w-0 items-center gap-3 overflow-hidden border-b bg-background p-3; }
+  .topology-summary-cards { @apply flex min-w-0 flex-1 gap-2 overflow-x-auto; scrollbar-width: none; }
+  .topology-summary-cards::-webkit-scrollbar { display: none; }
+  .topology-summary-actions { @apply flex shrink-0 items-center gap-2; }
+  .topology-summary-card { @apply flex min-w-[82px] flex-col items-center justify-center gap-0.5 rounded-md border bg-card px-3 py-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground; }
+  .topology-summary-card strong { @apply text-lg leading-5 text-[var(--link)]; }
+  .topology-summary-card.is-active { @apply border-[var(--link)] bg-accent text-accent-foreground; box-shadow: inset 0 0 0 1px hsl(var(--primary) / .12); }
+  .topology-canvas { @apply relative overflow-hidden rounded-b-md border-x border-b bg-[#101722]; height: var(--topology-canvas-height); min-height: 0; isolation: isolate; overscroll-behavior: none; }
+  .topology-canvas-renderer { @apply relative block h-full min-h-0 w-full overflow-hidden cursor-grab touch-none select-none; aspect-ratio: auto; overscroll-behavior: none; background-color: #101722; background-image: linear-gradient(rgba(148,163,184,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.07) 1px, transparent 1px); background-size: 32px 32px; }
+  .topology-canvas-renderer > .force-graph-container { @apply h-full w-full; }
+  .topology-canvas-renderer > .force-graph-container canvas { @apply h-full w-full cursor-grab; touch-action: none; }
+  .topology-canvas-renderer > .force-graph-container canvas.grabbable:active { @apply cursor-grabbing; }
+  .topology-canvas-hint { @apply pointer-events-none absolute bottom-3 left-4 rounded bg-[#0b111bcc] px-2 py-1 text-[11px] text-slate-300; }
+  .topology-zoom-controls { @apply absolute bottom-3 right-4 flex items-center gap-1 rounded-md border border-slate-600 bg-[#0b111bcc] p-1 text-xs text-slate-200 shadow-lg; }
+  .topology-zoom-controls button { @apply size-7 border-slate-600 bg-transparent text-slate-200 hover:bg-slate-700; }
+  .topology-filter-collapsed { @apply absolute right-4 top-4 border-slate-600 bg-[#0b111bcc] text-slate-100 hover:bg-slate-700; }
+  .topology-filter-panel, .topology-details-panel { @apply absolute z-10 w-[min(300px,calc(100%-2rem))] overflow-hidden rounded-lg border border-slate-600 bg-[#111925ee] text-slate-100 shadow-2xl backdrop-blur; }
+  .topology-filter-panel { @apply top-4 right-4 bottom-4; max-height: calc(100dvh - 2rem); display: flex; flex-direction: column; }
+  .topology-details-panel { @apply top-4 bottom-4 left-4 w-[min(340px,calc(100%-2rem))]; max-height: calc(100dvh - 2rem); display: flex; flex-direction: column; }
+  .topology-details-panel-right { @apply left-auto right-[320px]; }
+  .topology-details-panel-left-adjacent { @apply left-[332px] right-auto; }
+  .topology-panel-header { @apply flex items-start justify-between gap-3 border-b border-slate-700 px-4 py-3; }
+  .topology-panel-header-actions { @apply flex shrink-0 items-center gap-1; }
+  .topology-panel-header h3 { @apply text-sm font-semibold text-slate-100; }
+  .topology-panel-subtitle, .topology-eyebrow { @apply text-[11px] text-slate-400; }
+  .topology-panel-identity { @apply mt-1 font-mono text-xs font-semibold text-sky-300; }
+  .topology-eyebrow { @apply mb-1 uppercase tracking-[.16em]; }
+  .topology-filter-panel button, .topology-details-panel button { @apply text-slate-100; }
+  .topology-filter-scroll { @apply min-h-0 overflow-y-auto; flex: 1; scrollbar-width: none; }
+  .topology-filter-scroll::-webkit-scrollbar, .topology-details-scroll::-webkit-scrollbar, .topology-detail-section ul::-webkit-scrollbar { display: none; }
+  .topology-filter-controls { @apply grid gap-2 border-b border-slate-700 p-3; }
+  .topology-filter-controls .topology-search-wrap { @apply w-full; }
+  .topology-relation-filter { @apply flex items-center justify-between rounded-md border border-slate-700 px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-800; }
+  .topology-relation-filter[aria-pressed="true"] { @apply border-violet-400/70 bg-violet-500/15 text-slate-100; }
+  .topology-filter-scroll details { @apply border-b border-slate-700 last:border-b-0; }
+  .topology-filter-scroll summary { @apply flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium; }
+  .topology-filter-scroll summary::-webkit-details-marker { display: none; }
+  .topology-filter-options { @apply grid grid-cols-2 gap-1 px-3 pb-3; }
+  .topology-toggle-row { @apply flex items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-300 hover:bg-slate-800; }
+  .topology-toggle-row[aria-pressed="true"] { @apply bg-slate-800 text-slate-100; }
+  .topology-relation-legend { @apply grid grid-cols-2 gap-2 px-4 pb-4 text-xs text-slate-300; }
+  .topology-relation-legend span { @apply flex items-center gap-2; }
+  .topology-legend-dot { @apply inline-block size-2 rounded-full; }
+  .topology-legend-dot.service { @apply bg-violet-400; }
+  .topology-legend-dot.node { @apply bg-slate-400; }
+  .topology-legend-dot.component { @apply size-1.5 bg-slate-500; }
+  .topology-legend-line { @apply inline-block h-px w-4 bg-violet-400; }
+  .topology-details-scroll { @apply min-h-0 overflow-y-auto px-4 pb-4; flex: 1; overscroll-behavior: contain; scrollbar-width: none; touch-action: pan-y; }
+  .topology-node-badges { @apply flex flex-wrap gap-1.5 py-3; }
+  .topology-property-list { @apply grid gap-2 border-b border-slate-700 pb-3 text-xs; }
+  .topology-property-list > div { @apply grid grid-cols-[minmax(0,38%)_minmax(0,1fr)] items-start gap-2; }
+  .topology-property-list dt { @apply break-words text-slate-400; overflow-wrap: anywhere; }
+  .topology-property-list dd { @apply min-w-0 whitespace-pre-wrap break-words font-mono text-slate-200; overflow-wrap: anywhere; }
+  .topology-detail-section { @apply border-b border-slate-700 py-3 last:border-b-0; }
+  .topology-detail-section h4, .topology-preview-section h4 { @apply mb-2 text-xs font-semibold text-slate-100; }
+  .topology-detail-section ul { @apply m-0 flex flex-col gap-1 overflow-visible pl-4 text-xs text-slate-300; }
+  .topology-detail-section li { @apply break-words; }
+  .topology-detail-section code { @apply block break-words font-mono text-[11px] text-slate-300; }
+  .topology-detail-section li span { @apply block break-words text-[11px] text-slate-400; }
+  .topology-document-list { @apply flex flex-col gap-1; }
+  .topology-document-link { @apply flex min-w-0 items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs text-slate-300 hover:bg-slate-800; }
+  .topology-document-link.is-selected { @apply bg-slate-800 text-slate-100; }
+  .topology-document-open { @apply shrink-0 text-[var(--link)] hover:underline; }
+  .topology-muted { @apply text-xs text-slate-400; }
+  .topology-preview-section { @apply mt-3 rounded-md border border-slate-700 bg-slate-950/40 p-3; }
+  .topology-cluster-panel { @apply absolute top-4 left-4 z-[9] w-[min(300px,calc(100%-2rem))] overflow-hidden rounded-lg border border-slate-600 bg-[#111925e8] text-slate-100 shadow-xl backdrop-blur; }
+  .topology-cluster-header { @apply flex items-center justify-between gap-3 border-b border-slate-700 px-3 py-2.5 text-xs; }
+  .topology-cluster-header > span { @apply text-slate-400; }
+  .topology-cluster-header strong { @apply text-sm; }
+  .topology-cluster-scroll { @apply max-h-[min(48dvh,420px)] overflow-y-auto p-2; scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y; }
+  .topology-cluster-scroll::-webkit-scrollbar { display: none; }
+  .topology-cluster-card { @apply mb-2 overflow-hidden rounded-md border border-slate-700 last:mb-0; }
+  .topology-cluster-card > summary { @apply flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 text-xs font-medium hover:bg-slate-800; }
+  .topology-cluster-card > summary::-webkit-details-marker { display: none; }
+  .topology-cluster-card > summary span:last-child { @apply text-[10px] font-normal text-slate-400; }
+  .topology-cluster-body { @apply border-t border-slate-700 px-2.5 py-2; }
+  .topology-cluster-hierarchy, .topology-cluster-kind { @apply border-b border-slate-700 py-1.5 last:border-b-0; }
+  .topology-cluster-hierarchy > p, .topology-cluster-kind > p { @apply mb-1 flex items-center justify-between text-[10px] uppercase tracking-wide text-slate-400; }
+  .topology-cluster-hierarchy > p strong, .topology-cluster-kind > p strong { @apply font-mono text-slate-300; }
+  .topology-cluster-process { @apply mb-1 last:mb-0; }
+  .topology-cluster-members { @apply grid gap-0.5; }
+  .topology-cluster-member { @apply flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-left text-[11px] text-slate-300 hover:bg-slate-800; }
+  .topology-cluster-process-button { @apply text-slate-100; }
+  .topology-cluster-member-kind { @apply shrink-0 rounded bg-slate-700/70 px-1 py-0.5 text-[9px] text-slate-400; }
+  .topology-cluster-more { @apply block px-1.5 py-1 text-[10px] text-slate-500; }
+  .topology-statusbar { @apply flex flex-wrap justify-between gap-2 px-1 pt-2 text-[11px] text-muted-foreground; }
+  .topology-statusbar code { @apply font-mono; }
+  @media (max-width: 760px) {
+    .topology-summary-row { @apply flex-wrap; }
+    .topology-summary-cards { @apply order-2 basis-full; }
+    .topology-summary-actions { @apply ml-auto order-1; }
+    .topology-canvas { @apply min-h-[520px]; }
+    .topology-canvas-renderer { @apply min-h-[520px]; height: 520px; aspect-ratio: auto; }
+    .topology-filter-panel { @apply top-3 right-3 bottom-3; }
+    .topology-details-panel { @apply top-3 bottom-3 left-3; }
+    .topology-canvas.has-details .topology-details-panel { left: .75rem; right: auto; top: 18rem; bottom: .75rem; }
+    .topology-canvas.has-details .topology-details-panel-right, .topology-canvas.has-details .topology-details-panel-left-adjacent { left: .75rem; right: .75rem; top: 18rem; bottom: .75rem; width: auto; }
+    .topology-cluster-panel { @apply left-3 right-3 top-3; width: auto; }
+  }
+  @media (min-width: 761px) and (max-width: 1099px) {
+    .topology-canvas.has-details .topology-details-panel { left: 1rem; right: auto; top: 18rem; bottom: 1rem; }
+    .topology-canvas.has-details .topology-details-panel-right { left: auto; right: 320px; top: 1rem; bottom: 1rem; }
+    .topology-canvas.has-details .topology-details-panel-left-adjacent { left: 332px; right: auto; top: 1rem; bottom: 1rem; }
+  }
+  :root[data-theme="light"] .topology-canvas { background: #f5f7fb; }
+  :root[data-theme="light"] .topology-canvas-renderer { background-color: #f5f7fb; background-image: linear-gradient(rgba(71,85,105,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(71,85,105,.12) 1px, transparent 1px); }
+  :root[data-theme="light"] .topology-canvas-hint { @apply bg-white/90 text-slate-600; }
+  :root[data-theme="light"] .topology-zoom-controls { @apply border-slate-300 bg-white/90 text-slate-700; }
+  :root[data-theme="light"] .topology-zoom-controls button { @apply border-slate-300 text-slate-700 hover:bg-slate-100; }
+  :root[data-theme="light"] .topology-filter-collapsed { @apply border-slate-300 bg-white/90 text-slate-700 hover:bg-slate-100; }
+  :root[data-theme="light"] .topology-filter-panel, :root[data-theme="light"] .topology-details-panel { @apply border-slate-300 bg-white/95 text-slate-800; }
+  :root[data-theme="light"] .topology-panel-header { @apply border-slate-200; }
+  :root[data-theme="light"] .topology-panel-header h3, :root[data-theme="light"] .topology-detail-section h4, :root[data-theme="light"] .topology-preview-section h4 { @apply text-slate-800; }
+  :root[data-theme="light"] .topology-panel-identity { @apply text-blue-600; }
+  :root[data-theme="light"] .topology-panel-subtitle, :root[data-theme="light"] .topology-eyebrow, :root[data-theme="light"] .topology-property-list dt, :root[data-theme="light"] .topology-muted { @apply text-slate-500; }
+  :root[data-theme="light"] .topology-filter-scroll details, :root[data-theme="light"] .topology-property-list, :root[data-theme="light"] .topology-detail-section, :root[data-theme="light"] .topology-filter-controls, :root[data-theme="light"] .topology-cluster-header, :root[data-theme="light"] .topology-cluster-body, :root[data-theme="light"] .topology-cluster-card, :root[data-theme="light"] .topology-cluster-hierarchy, :root[data-theme="light"] .topology-cluster-kind { @apply border-slate-200; }
+  :root[data-theme="light"] .topology-filter-panel button, :root[data-theme="light"] .topology-details-panel button { @apply text-slate-700; }
+  :root[data-theme="light"] .topology-toggle-row { @apply text-slate-600 hover:bg-slate-100; }
+  :root[data-theme="light"] .topology-relation-filter { @apply border-slate-200 text-slate-600 hover:bg-slate-100; }
+  :root[data-theme="light"] .topology-relation-filter[aria-pressed="true"] { @apply border-violet-300 bg-violet-50 text-slate-800; }
+  :root[data-theme="light"] .topology-toggle-row[aria-pressed="true"], :root[data-theme="light"] .topology-document-link.is-selected { @apply bg-slate-100 text-slate-800; }
+  :root[data-theme="light"] .topology-relation-legend, :root[data-theme="light"] .topology-detail-section ul, :root[data-theme="light"] .topology-document-link { @apply text-slate-600; }
+  :root[data-theme="light"] .topology-detail-section code { @apply text-slate-600; }
+  :root[data-theme="light"] .topology-detail-section li span { @apply text-slate-500; }
+  :root[data-theme="light"] .topology-property-list dd { @apply text-slate-700; }
+  :root[data-theme="light"] .topology-preview-section { @apply border-slate-200 bg-slate-50; }
+  :root[data-theme="light"] .topology-preview-section p { @apply text-slate-700; }
+  :root[data-theme="light"] .topology-cluster-panel { @apply border-slate-300 bg-white/95 text-slate-800; }
+  :root[data-theme="light"] .topology-cluster-card { @apply border-slate-200; }
+  :root[data-theme="light"] .topology-cluster-card > summary:hover, :root[data-theme="light"] .topology-cluster-member:hover { @apply bg-slate-100; }
+  :root[data-theme="light"] .topology-cluster-header > span, :root[data-theme="light"] .topology-cluster-card > summary span:last-child, :root[data-theme="light"] .topology-cluster-hierarchy > p, :root[data-theme="light"] .topology-cluster-kind > p, :root[data-theme="light"] .topology-cluster-more { @apply text-slate-500; }
+  :root[data-theme="light"] .topology-cluster-member { @apply text-slate-600; }
+  :root[data-theme="light"] .topology-cluster-process-button { @apply text-slate-800; }
+  :root[data-theme="light"] .topology-cluster-member-kind { @apply bg-slate-100 text-slate-500; }
+}
+
+@media (max-width: 640px) {
+  .top-nav { padding-left: 8px; padding-right: 8px; }
+  .top-nav { width: 36px; justify-content: center; padding-left: 0; padding-right: 0; font-size: 0; }
+  .triage-layout {
+    height: calc(100dvh - 7.5rem);
+    min-height: 520px;
+  }
+  .triage-message { max-width: 94%; }
+  .triage-composer { @apply px-3 py-2; }
+  .triage-model-grid { @apply grid-cols-1; }
+}
+
+@keyframes triage-title-scroll {
+  0%, 12% { transform: translateX(0); }
+  88%, 100% { transform: translateX(min(0px, calc(100cqw - 100%))); }
+}

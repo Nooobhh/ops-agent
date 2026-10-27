@@ -1,0 +1,43 @@
+# 命令红线规则(核心通用部分);环境包可在 policy/redlines.yaml 追加收紧规则,判定取两者合并
+# 判定顺序:forbidden_patterns → 分段命令词(forbidden)→ 分段命令词(write,allow 段级豁免)→ write_patterns
+allow_patterns:                       # 命中段视为只读段(不豁免 forbidden,不短路其余段)
+  - '^mkdir -p /tmp/opsagent/'
+  - '^crontab\s+(?:-u\s+\S+\s+)?-l(?:\s|$)'      # crontab 仅 -l(可带前置 -u <user>)只读
+forbidden_commands: [shutdown, reboot, halt, poweroff, mkfs, fdisk, parted]
+forbidden_word_flags:                 # 内联 shell:让远端 shell 重新解析整串,结构化 argv
+  - words: '^(?:bash|sh|zsh|ksh|dash)$'          # 与逐 token 转义当场失效,静态判定全部落空
+    flag: 'c'                                    # 故三档皆拒,不给人工审核(批了也看不清真实执行什么)
+forbidden_patterns:
+  - '\bmkfs\.\w+'
+  - '\bdd\b[^|;&]*\bof=/dev/(?!null\b)'          # dd 写块设备;of=/dev/null 基准测试降为 WRITE
+  - '\brm\s+(?:-[\w-]+\s+)*/(?:\s*(?:$|;|&)|\*|\.(?:\s|$))'   # rm 直指根(含 /* 与 /.)
+  - '\binit\s+[06]\b'
+  - '\bsystemctl\s+(?:-\S+\s+)*(?:reboot|poweroff|halt|kexec|exit|emergency)\b'   # systemctl 电源/紧急动词 = 裸 reboot 同级
+write_commands: [rm, mv, chown, chmod, kill, pkill, killall,
+  swapoff, swapon, useradd, userdel, groupadd, passwd, crontab, yum, rpm, apt-get,
+  mkdir, touch, tee, truncate, shred, ln, dd, eval]
+write_patterns:
+  - '\b(?:hdfs\s+dfs|hadoop\s+(?:fs|dfs))\s+-(rm|mv|put|cp|chmod|chown|mkdir|touchz|appendToFile|setrep)\b'
+  - '\byarn\s+(application|app)\b[^|;&]*-kill\b'
+  - '\bsysctl\s+-w\b'
+  - '\bsed\s+(?:-\w+\s+)*-i\b'
+  - '\bcurl\b(?![^|;&\n]*\s-(?:[a-zA-Z]*G[a-zA-Z]*\b|-get\b))[^|;&]*(?:-X\s*(?:POST|PUT|DELETE)|--data\b|\s-d\s)'
+    # -G/--get 强制 GET(--data* 转 query string)豁免;无 -G 的 --data*/-d/-X 写动词仍拦
+  - '(?i)\b(?:beeline|hive|mysql|impala-shell)\b[^|;&]*\s-e\s[^|;&]*\b(?:insert|update|delete|drop|alter|truncate)\b'
+  - '(?i)\bpsql\b[^|;&]*\s-\w*c\s[^|;&]*\b(?:insert|update|delete|drop|alter|truncate|create|grant|revoke)\b'
+  - '[^0-9&]>>?\s*[''"]?/(?!(?:tmp|dev)(?:/|\s|$))'   # 绝对路径重定向(含带引号的目标),豁免 /tmp、/dev
+  - '\bsort\b[^|;&]*\s--(?:output|compress-program)\b'   # sort 长选项:写文件 / 执行任意二进制
+  - '\b(?:systemctl|service)\b[^|;&\n]*\b(?:start|stop|restart|reload|try-restart|reload-or-restart|enable|disable|mask|unmask|kill|isolate|set-property|daemon-reload|edit|revert|rescue|default|suspend|hibernate|hybrid-sleep|set-default|preset|preset-all|reset-failed)\b'
+  - '\bfind\b[^|;&\n]*(?:-delete\b|-exec(?:dir)?\s+(?!(?:ls|cat|grep|egrep|fgrep|head|tail|stat|wc|file|md5sum|sha1sum|sha256sum|du|echo|readlink|basename|dirname|test)\b))'
+    # -exec 接白名单只读命令豁免;接 rm/sh/自定义脚本等仍拦
+  - '\bsupervisorctl\b[^|;&\n]*\b(?:start|stop|restart|reload|shutdown|remove|add|update)\b'
+  - '\b\S+\.sh\b[^|;&\n]*\b(?:start|stop|restart|reload)\b'
+    # 组件启停脚本(hadoop-daemon.sh/zkServer.sh/kafka-server-*.sh 等):
+    # systemctl/service 之外的第二条服务生命周期通道
+  - '\bxargs\b[^|;&\n]*\s(?:sudo\s+)?(?:rm|mv|kill|chmod|chown|tee|truncate|dd|shred|ln)\b'
+    # xargs 转发写命令:命令词识别只看到 xargs 本身
+  - '\$\(|`'
+    # 命令替换:内容对过滤器是黑盒(单引号里的字面量已被中和,不误伤 grep '$(x)')
+write_word_flags:                     # 命令词+旗标组合判 WRITE(段级判定,防参数字符串误触发)
+  - words: '^sort$'                              # sort -o FILE 写文件(命令名看着只读,实则落盘)
+    flag: 'o'

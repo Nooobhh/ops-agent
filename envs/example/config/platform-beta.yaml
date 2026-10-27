@@ -1,0 +1,44 @@
+# beta 集群主机清单(虚构)。endpoints 条目带 source 溯源。
+platform: beta
+cluster_name: beta-cluster
+collected_at: '2026-01-01T00:00:00+00:00'
+endpoints:
+  prometheus:
+    url: http://127.0.0.1:9090
+    source: manual
+    note: 示例占位
+  rm_web:
+    url: http://node1.beta.example.internal:8088
+    source: manual
+  nn_http:
+    url: http://node1.beta.example.internal:50070
+    source: manual
+  zookeeper_client:
+    host: ''
+    port: 2181
+    source: manual
+nodes:
+  node1:
+    host: 198.51.100.11
+    components:
+    - NAMENODE
+    - RESOURCEMANAGER
+    - ZOOKEEPER_SERVER
+    - HIVE_METASTORE
+    - HDFS_CLIENT
+  node2:
+    host: 198.51.100.12
+    components:
+    - DATANODE
+    - NODEMANAGER
+    - ZOOKEEPER_SERVER
+    - KAFKA_BROKER
+    - NGINX
+  node3:
+    host: 198.51.100.13
+    components:
+    - DATANODE
+    - NODEMANAGER
+    - ZOOKEEPER_SERVER
+    - MYSQL_SERVER
+    - REDIS

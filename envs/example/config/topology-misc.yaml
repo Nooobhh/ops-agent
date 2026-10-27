@@ -1,0 +1,19 @@
+# 零散节点(虚构)。
+platform: misc
+cluster_name: misc-services
+collected_at: '2026-01-01T00:00:00+00:00'
+nodes:
+  vm-app01:
+    host: 203.0.113.21
+    components:
+    - MYSQL_SERVER
+    node_type: vm
+    role: 应用库
+    status: observed-active
+  vm-web01:
+    host: 203.0.113.22
+    components:
+    - NGINX
+    node_type: vm
+    role: 反向代理
+    status: observed-active

@@ -1,0 +1,5 @@
+[project]
+name = "ops-agent"
+version = "1.0.0"
+description = "可移植大数据运维 agent:知识库路由 + playbook 脚本优先 + LLM 按需介入"
+requires-python = ">=3.9"

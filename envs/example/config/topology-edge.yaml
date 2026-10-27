@@ -1,0 +1,11 @@
+# 边缘节点(虚构)。
+platform: edge
+cluster_name: edge
+collected_at: '2026-01-01T00:00:00+00:00'
+nodes:
+  site-a-edge:
+    host: 203.0.113.41
+    components: []
+    node_type: edge-server
+    role: 站点 A 边缘服务器
+    status: registered
