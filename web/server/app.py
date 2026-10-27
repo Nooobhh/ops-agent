@@ -65,7 +65,8 @@ class _SpaStaticFiles(StaticFiles):
         try:
             return await super().get_response(path, scope)
         except StarletteHTTPException as exc:
-            if exc.status_code != 404 or str(path).startswith(self._NO_FALLBACK):
+            # starlette 给的是系统分隔符路径(Windows 上为 api\xxx),先统一成 / 再比前缀
+            if exc.status_code != 404 or str(path).replace("\\", "/").startswith(self._NO_FALLBACK):
                 raise
             return await super().get_response("index.html", scope)
 
