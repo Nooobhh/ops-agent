@@ -368,7 +368,7 @@
 - Web CLI 启动最前由 `lib/network_env.py` 清除大小写 HTTP/HTTPS/ALL proxy 并设 `NO_PROXY/no_proxy=*`,Web/scheduler/凭据提供方/worker 全部直连
 - 独立运行 alert_poll 时仍从 source/platform 配置提取 endpoint 主机合并 NO_PROXY
 - 仓库为 polyglot:前端 `web/frontend/`(React+Vite),`dist/` 与 node_modules 不入库,部署前须现场构建
-- **三仓边界**:主仓只装代码;知识库仓与 records 仓都在 ops-agent 外(`../knowledge`、`../records`),经 `paths.local.yaml` 定位
+- **仓库边界**:主仓只装代码;知识库、records 与环境包仓都在 ops-agent 外,经 `paths.local.yaml` 定位
 - 运行时路径唯一入口 `lib/data_root.py`:state/records/build/knowledge 经 `resolve_data_root`(`OPS_AGENT_DATA_ROOT`,未设=仓库根),禁直接拼仓库根(守卫测试拦)
 - 记录根只经 `resolve_records_root`/`records_root_for`:`paths.local.yaml` 的 `records_root` → `<数据根>/records`;禁 `/ "records"` 拼接(守卫拦)
 - 记录根可在数据根之外:展示路径一律写 `records/<相对记录根>`;`TroubleshootSession.data_root` 供 oplog 校验找知识库根,勿再从目录向上推
@@ -423,8 +423,8 @@
 - 历史 ID 经知识库根 `_redirects.yaml` 映射:读文档/chunk、引用反查、晋升呼应、oplog 校验都须认旧 ID,不改历史 records/任务
 - oplog 引用写作 `knowledge/<文档 ID>`(`knowledge/` 指知识库根),须落在某库 `oplog/` 下
 - 未指定库的写入(排查沉淀、kb_import)落默认库(首个 platform_service 库);分组 flat 库按分组值落子目录,无值进 common_dir
-- 提交前认准仓:改知识库用 `git -C ../knowledge`,改记录用 `git -C ../records`,改代码用主仓;三仓各有 pre-commit lint
-- 知识库仓与 records 仓 hook 由 `scripts/install_hooks.sh` 写死主仓绝对路径,任一仓搬家后须重跑
+- 提交前认准仓:改知识库用 `git -C ../knowledge`,改记录用 `git -C ../records`,改环境包进其仓,改代码用主仓;各仓各有 pre-commit
+- 知识库、records 与环境包仓 hook 由 `scripts/install_hooks.sh` 写死主仓绝对路径,任一仓搬家后须重跑
 - `docs/{specs,plans,ohaze}/` 含集群拓扑与内网地址,gitignore 且**无独立仓**:纯本地文件,新机 clone 后不存在
 - 架构总览(分层依赖/运行时拓扑/主链路/数据落点/已知越层):[docs/architecture.md](docs/architecture.md),架构变化时同步
 - 当前 Agent 设计稿(类型/Loop/Context 优化/工具语义)索引见 README「Agent-Ops 任务链路」
