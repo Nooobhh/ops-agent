@@ -203,6 +203,25 @@ def test_unregistered_api_path_404s_instead_of_serving_the_spa_shell(tmp_path):
     assert client.get("/alerts").status_code == 200
 
 
+def test_spa_fallback_keeps_404_for_windows_style_paths(tmp_path):
+    """Windows 上 starlette 交给 get_response 的是反斜杠路径(api\\xxx),同样不得兜进 index.html。"""
+    import asyncio
+
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+
+    from web.server.app import _SpaStaticFiles
+
+    tmp_path.joinpath("index.html").write_text("<html>console shell</html>", encoding="utf-8")
+    static = _SpaStaticFiles(directory=str(tmp_path), html=True)
+    scope = {"type": "http", "method": "GET", "headers": []}
+
+    for path in ("api\\does-not-exist", "assets\\missing.js"):
+        with pytest.raises(StarletteHTTPException) as exc:
+            asyncio.run(static.get_response(path, scope))
+        assert exc.value.status_code == 404
+    assert asyncio.run(static.get_response("alerts\\detail", scope)).status_code == 200
+
+
 def test_health_uses_single_request_context_dependency(tmp_path):
     app = create_app(state_dir=tmp_path / "state", repo_root=tmp_path)
     sentinel = RequestContext()
